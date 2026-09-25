@@ -1,99 +1,6 @@
-export default {
-  async fetch(request, env, ctx) {
-    try {
-      if (request.method === "OPTIONS") {
-        return new Response(null, {
-          status: 204,
-          headers: corsHeaders(),
-        });
-      }
-
-      const url = new URL(request.url);
-      const path = url.pathname;
-
-      // =========================
-      // PUBLIC / AUTH ROUTES
-      // =========================
-
-      if (request.method === "GET" && path === "/") {
-        return json({
-          ok: true,
-          service: "HUB CSE Question Bank API",
-          version: "2.0",
-        });
-      }
-
-      if (request.method === "POST" && path === "/auth/cr") {
-        return await handleCRAuth(request, env);
-      }
-
-      if (request.method === "POST" && path === "/auth/admin") {
-        return await handleAdminAuth(request, env);
-      }
-
-      if (request.method === "GET" && path === "/student-info") {
-        return await handleStudentInfo(request, env);
-      }
-
-      if (request.method === "GET" && path === "/academic-config") {
-        return await handleAcademicConfig(request, env);
-      }
-
-      if (request.method === "GET" && path === "/github-test") {
-        return await handleGithubTest(request, env);
-      }
-
-      // =========================
-      // STUDENT UPLOAD
-      // =========================
-
-      if (request.method === "POST" && path === "/upload-request") {
-        return await handleUploadRequest(request, env);
-      }
-
-      // =========================
-      // ADMIN
-      // =========================
-
-      if (request.method === "GET" && path === "/admin/uploads") {
-        return await handleAdminUploads(request, env);
-      }
-
-      if (request.method === "GET" && path === "/admin/preview") {
-        return await handleAdminPreview(request, env);
-      }
-
-      if (request.method === "POST" && path === "/admin/approve") {
-        return await handleApprove(request, env);
-      }
-
-      if (request.method === "POST" && path === "/admin/reject") {
-        return await handleReject(request, env);
-      }
-
-      if (request.method === "GET" && path === "/admin/published") {
-        return await handleAdminPublished(request, env);
-      }
-
-      if (request.method === "POST" && path === "/admin/delete") {
-        return await handleAdminDelete(request, env);
-      }
-
-      return error("Route not found", 404);
-    } catch (err) {
-      console.error("Unhandled error:", err);
-
-      return error(
-        err?.message || "Internal server error",
-        500
-      );
-    }
-  },
-};
-
-
 // ============================================================
-// CONFIGURATION
+// HUB CSE QUESTION BANK
+// Cloudflare Worker API
 // ============================================================
 
 const MAX_PDF_SIZE = 15 * 1024 * 1024;
@@ -121,35 +28,258 @@ const VALID_EXAMS = [
 
 
 // ============================================================
-// RESPONSE HELPERS
+// MAIN WORKER
+// ============================================================
+
+export default {
+  async fetch(request, env, ctx) {
+
+    try {
+
+      // --------------------------------------------------------
+      // CORS
+      // --------------------------------------------------------
+
+      if (request.method === "OPTIONS") {
+        return new Response(null, {
+          status: 204,
+          headers: corsHeaders(),
+        });
+      }
+
+
+      const url = new URL(request.url);
+      const path = url.pathname;
+
+
+      // --------------------------------------------------------
+      // BASIC
+      // --------------------------------------------------------
+
+      if (
+        request.method === "GET" &&
+        path === "/"
+      ) {
+        return json({
+          ok: true,
+          service: "HUB CSE Question Bank API",
+          status: "online",
+          version: "2.0",
+        });
+      }
+
+
+      // --------------------------------------------------------
+      // AUTH
+      // --------------------------------------------------------
+
+      if (
+        request.method === "POST" &&
+        path === "/auth/cr"
+      ) {
+        return await handleCRAuth(request, env);
+      }
+
+
+      if (
+        request.method === "POST" &&
+        path === "/auth/admin"
+      ) {
+        return await handleAdminAuth(request, env);
+      }
+
+
+      // --------------------------------------------------------
+      // STUDENT / ACADEMIC
+      // --------------------------------------------------------
+
+      if (
+        request.method === "GET" &&
+        path === "/student-info"
+      ) {
+        return await handleStudentInfo(request, env);
+      }
+
+
+      if (
+        request.method === "GET" &&
+        path === "/academic-config"
+      ) {
+        return await handleAcademicConfig(request, env);
+      }
+
+
+      // --------------------------------------------------------
+      // GITHUB TEST
+      // --------------------------------------------------------
+
+      if (
+        request.method === "GET" &&
+        path === "/github-test"
+      ) {
+        return await handleGithubTest(request, env);
+      }
+
+
+      // --------------------------------------------------------
+      // STUDENT UPLOAD
+      // --------------------------------------------------------
+
+      if (
+        request.method === "POST" &&
+        path === "/upload-request"
+      ) {
+        return await handleUploadRequest(request, env);
+      }
+
+
+      // --------------------------------------------------------
+      // ADMIN - PENDING UPLOADS
+      // --------------------------------------------------------
+
+      if (
+        request.method === "GET" &&
+        path === "/admin/uploads"
+      ) {
+        return await handleAdminUploads(request, env);
+      }
+
+
+      // --------------------------------------------------------
+      // ADMIN - PREVIEW PENDING PDF
+      // --------------------------------------------------------
+
+      if (
+        request.method === "GET" &&
+        path === "/admin/preview"
+      ) {
+        return await handleAdminPreview(request, env);
+      }
+
+
+      // --------------------------------------------------------
+      // ADMIN - APPROVE
+      // --------------------------------------------------------
+
+      if (
+        request.method === "POST" &&
+        path === "/admin/approve"
+      ) {
+        return await handleAdminApprove(request, env);
+      }
+
+
+      // --------------------------------------------------------
+      // ADMIN - REJECT
+      // --------------------------------------------------------
+
+      if (
+        request.method === "POST" &&
+        path === "/admin/reject"
+      ) {
+        return await handleAdminReject(request, env);
+      }
+
+
+      // --------------------------------------------------------
+      // ADMIN - PUBLISHED
+      // --------------------------------------------------------
+
+      if (
+        request.method === "GET" &&
+        path === "/admin/published"
+      ) {
+        return await handleAdminPublished(request, env);
+      }
+
+
+      // --------------------------------------------------------
+      // ADMIN - DELETE PUBLISHED QUESTION
+      // --------------------------------------------------------
+
+      if (
+        request.method === "POST" &&
+        path === "/admin/delete"
+      ) {
+        return await handleAdminDelete(request, env);
+      }
+
+
+      // --------------------------------------------------------
+      // UNKNOWN ROUTE
+      // --------------------------------------------------------
+
+      return error(
+        "Route not found",
+        404
+      );
+
+    } catch (err) {
+
+      console.error(
+        "Unhandled error:",
+        err
+      );
+
+      return error(
+        err?.message ||
+        "Internal server error",
+        500
+      );
+    }
+  },
+};
+
+
+// ============================================================
+// CORS / RESPONSE HELPERS
 // ============================================================
 
 function corsHeaders() {
+
   return {
+
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+
+    "Access-Control-Allow-Methods":
+      "GET, POST, OPTIONS",
+
     "Access-Control-Allow-Headers":
       "Content-Type, Authorization, X-Password",
+
   };
 }
 
 
-function json(data, status = 200) {
+function json(
+  data,
+  status = 200
+) {
+
   return new Response(
     JSON.stringify(data),
     {
       status,
+
       headers: {
         ...corsHeaders(),
-        "Content-Type": "application/json",
-        "Cache-Control": "no-store",
+
+        "Content-Type":
+          "application/json",
+
+        "Cache-Control":
+          "no-store",
       },
     }
   );
 }
 
 
-function error(message, status = 400) {
+function error(
+  message,
+  status = 400
+) {
+
   return json(
     {
       ok: false,
@@ -165,112 +295,153 @@ function error(message, status = 400) {
 // ============================================================
 
 function uuid() {
+
   return crypto.randomUUID();
 }
 
 
 function normalizeString(value) {
-  return String(value ?? "").trim();
+
+  return String(
+    value ?? ""
+  ).trim();
 }
 
 
 // ============================================================
-// UPLOAD FIELD VALIDATION
+// CR ID
 // ============================================================
 
 function normalizeCRId(value) {
-  const crId = normalizeString(value);
+
+  const crId =
+    normalizeString(value)
+      .replace(/\s+/g, "");
 
   if (!crId) {
-    throw new Error("CR ID is required");
+
+    throw new Error(
+      "CR ID is required"
+    );
   }
 
-  /*
-   * Keep this validation intentionally flexible.
-   * The existing system may use different CR ID formats.
-   */
-  if (crId.length > 100) {
-    throw new Error("Invalid CR ID");
+  if (!/^\d{9}$/.test(crId)) {
+
+    throw new Error(
+      "CR ID must contain exactly 9 digits"
+    );
   }
 
   return crId;
 }
 
 
+// ============================================================
+// CR NAME
+// ============================================================
+
 function normalizeCRName(value) {
-  const name = normalizeString(value);
+
+  const name =
+    normalizeString(value)
+      .replace(/\s+/g, " ");
 
   if (!name) {
-    throw new Error("CR name is required");
+
+    throw new Error(
+      "CR name is required"
+    );
   }
 
   if (name.length < 2) {
-    throw new Error("CR name is too short");
+
+    throw new Error(
+      "CR name is too short"
+    );
   }
 
-  if (name.length > 150) {
-    throw new Error("CR name is too long");
+  if (name.length > 100) {
+
+    throw new Error(
+      "CR name is too long"
+    );
   }
 
   return name;
 }
 
 
+// ============================================================
+// WHATSAPP NUMBER
+// ============================================================
+
 function normalizeWhatsApp(value) {
-  const raw = normalizeString(value);
 
-  if (!raw) {
-    throw new Error("WhatsApp number is required");
-  }
+  let number =
+    normalizeString(value)
+      .replace(/[\s\-()]/g, "");
 
-  /*
-   * Remove common formatting characters.
-   *
-   * Accepted:
-   * 01XXXXXXXXX
-   * 8801XXXXXXXXX
-   * +8801XXXXXXXXX
-   */
-  const cleaned = raw.replace(/[\s\-()]/g, "");
 
-  if (!/^(\+8801|8801|01)\d{9}$/.test(cleaned)) {
+  if (!number) {
+
     throw new Error(
-      "Invalid WhatsApp number. Use a valid Bangladesh mobile number."
+      "WhatsApp number is required"
     );
   }
 
-  return cleaned;
+
+  // 01XXXXXXXXX
+  if (/^01\d{9}$/.test(number)) {
+    return number;
+  }
+
+
+  // 8801XXXXXXXXX
+  if (/^8801\d{9}$/.test(number)) {
+    return `+${number}`;
+  }
+
+
+  // +8801XXXXXXXXX
+  if (/^\+8801\d{9}$/.test(number)) {
+    return number;
+  }
+
+
+  throw new Error(
+    "Invalid Bangladesh WhatsApp number"
+  );
 }
 
 
+// ============================================================
+// BATCH
+// ============================================================
+
 function normalizeBatch(value) {
-  const raw = normalizeString(value);
 
-  if (!raw) {
-    throw new Error("Batch number is required");
-  }
+  const raw =
+    normalizeString(value);
 
-  /*
-   * Only plain integer digits are accepted.
-   * Prevents values such as:
-   * 1.5
-   * 1e2
-   * +10
-   * abc
-   */
   if (!/^\d+$/.test(raw)) {
-    throw new Error("Invalid batch number");
+
+    throw new Error(
+      "Invalid batch number"
+    );
   }
 
-  const batch = Number(raw);
+  const batch =
+    Number(raw);
+
 
   if (
     !Number.isInteger(batch) ||
     batch < 1 ||
     batch > 999
   ) {
+
     throw new Error(
-      "Invalid batch number. Batch must be between 1 and 999."
+      "Invalid batch number"
     );
   }
 
@@ -278,16 +449,25 @@ function normalizeBatch(value) {
 }
 
 
-function normalizeSession(value) {
-  const session = normalizeString(value);
+// ============================================================
+// SESSION
+// ============================================================
 
-  const found = VALID_SESSIONS.find(
-    item =>
-      item.toLowerCase() ===
-      session.toLowerCase()
-  );
+function normalizeSession(value) {
+
+  const session =
+    normalizeString(value);
+
+  const found =
+    VALID_SESSIONS.find(
+      item =>
+        item.toLowerCase() ===
+        session.toLowerCase()
+    );
+
 
   if (!found) {
+
     throw new Error(
       "Invalid session. Use Spring or Fall"
     );
@@ -297,24 +477,34 @@ function normalizeSession(value) {
 }
 
 
+// ============================================================
+// YEAR
+// ============================================================
+
 function normalizeYear(value) {
-  const raw = normalizeString(value);
+
+  const raw =
+    normalizeString(value);
 
   if (!/^\d{4}$/.test(raw)) {
+
     throw new Error(
-      "Invalid year. Year must contain exactly 4 digits."
+      "Year must contain exactly 4 digits"
     );
   }
 
-  const year = Number(raw);
+  const year =
+    Number(raw);
+
 
   if (
     !Number.isInteger(year) ||
     year < 2000 ||
     year > 2100
   ) {
+
     throw new Error(
-      "Invalid year. Use a year between 2000 and 2100."
+      "Invalid year"
     );
   }
 
@@ -322,20 +512,31 @@ function normalizeYear(value) {
 }
 
 
+// ============================================================
+// EXAM
+// ============================================================
+
 function normalizeExam(value) {
+
   const exam =
-    normalizeString(value).toLowerCase();
+    normalizeString(value)
+      .toLowerCase();
+
 
   if (
     exam === "mid" ||
     exam === "midterm"
   ) {
+
     return "Mid";
   }
 
+
   if (exam === "final") {
+
     return "Final";
   }
+
 
   throw new Error(
     "Invalid examination. Use Mid or Final"
@@ -343,9 +544,15 @@ function normalizeExam(value) {
 }
 
 
+// ============================================================
+// SEMESTER
+// ============================================================
+
 function normalizeSemester(value) {
+
   let semester =
     normalizeString(value);
+
 
   semester =
     semester.replace(
@@ -353,26 +560,33 @@ function normalizeSemester(value) {
       ""
     );
 
+
   if (!/^\d{1,2}$/.test(semester)) {
+
     throw new Error(
-      "Invalid semester. Use a semester number from 1 to 8."
+      "Invalid semester"
     );
   }
 
+
   const number =
     Number(semester);
+
 
   if (
     !Number.isInteger(number) ||
     number < 1 ||
     number > 8
   ) {
+
     throw new Error(
-      "Invalid semester. Use a semester number from 1 to 8."
+      "Invalid semester"
     );
   }
 
-  return String(number).padStart(2, "0");
+
+  return String(number)
+    .padStart(2, "0");
 }
 
 
@@ -387,6 +601,7 @@ function generateQuestionPaperIdentity({
   exam,
   semester,
 }) {
+
   const normalizedBatch =
     normalizeBatch(batch);
 
@@ -402,21 +617,21 @@ function generateQuestionPaperIdentity({
   const semesterNo =
     normalizeSemester(semester);
 
+
   const semesterName =
     `Semester_${semesterNo}`;
 
-  /*
-   * IMPORTANT:
-   * Filename is generated ONLY by Worker.
-   * Frontend-provided filename is never trusted.
-   */
+
   const filename =
     `Batch-${normalizedBatch}_${normalizedSession}-${normalizedYear}_${normalizedExam}.pdf`;
+
 
   const githubPath =
     `${semesterName}/${filename}`;
 
+
   return {
+
     batchNo:
       normalizedBatch,
 
@@ -446,81 +661,80 @@ function generateQuestionPaperIdentity({
 // ============================================================
 
 async function validatePdf(file) {
+
   if (!(file instanceof File)) {
+
     throw new Error(
-      "Question paper PDF is required"
+      "PDF file is required"
     );
   }
 
+
   if (file.size <= 0) {
+
     throw new Error(
       "PDF file is empty"
     );
   }
 
+
   if (file.size > MAX_PDF_SIZE) {
+
     throw new Error(
       `PDF size cannot exceed ${MAX_PDF_SIZE / 1024 / 1024} MB`
     );
   }
 
-  /*
-   * Browser MIME type is not enough for security,
-   * but we still validate it when available.
-   */
+
   if (
     file.type &&
     file.type !== "application/pdf"
   ) {
+
     throw new Error(
       "Only PDF files are allowed"
     );
   }
 
+
   const buffer =
     await file.arrayBuffer();
+
 
   const bytes =
     new Uint8Array(buffer);
 
-  /*
-   * Real PDF files normally begin with:
-   *
-   * %PDF-
-   *
-   * This prevents simply renaming arbitrary files
-   * such as .jpg/.exe to .pdf.
-   */
-  if (bytes.length < 5) {
-    throw new Error(
-      "Invalid PDF file"
-    );
-  }
 
   const signature =
-    new TextDecoder().decode(
-      bytes.slice(0, 5)
-    );
+    new TextDecoder()
+      .decode(
+        bytes.slice(0, 5)
+      );
+
 
   if (signature !== "%PDF-") {
+
     throw new Error(
       "Invalid PDF file"
     );
   }
+
 
   return buffer;
 }
 
 
 // ============================================================
-// HASH
+// HASH / TOKEN
 // ============================================================
 
 async function sha256(value) {
+
   const data =
     typeof value === "string"
       ? new TextEncoder().encode(value)
       : value;
+
 
   const hashBuffer =
     await crypto.subtle.digest(
@@ -528,141 +742,172 @@ async function sha256(value) {
       data
     );
 
+
   return Array.from(
     new Uint8Array(hashBuffer)
   )
     .map(
       b =>
-        b
-          .toString(16)
+        b.toString(16)
           .padStart(2, "0")
     )
     .join("");
 }
 
 
-// ============================================================
-// AUTH TOKENS
-// ============================================================
-
 async function createToken(type) {
+
   const timestamp =
     Date.now();
 
+
   const raw =
     `${type}:${timestamp}:${uuid()}:${crypto.randomUUID()}`;
+
 
   const token =
     await sha256(
       `${raw}:${type}`
     );
 
+
   return `${timestamp}.${token}`;
 }
 
 
-async function verifyToken(token, type) {
+async function verifyToken(
+  token,
+  type
+) {
+
   if (!token) {
     return false;
   }
 
+
   const parts =
     token.split(".");
+
 
   if (parts.length !== 2) {
     return false;
   }
 
+
   const timestamp =
     Number(parts[0]);
+
 
   const hash =
     parts[1];
 
-  if (
-    !Number.isFinite(timestamp) ||
-    !hash
-  ) {
+
+  if (!Number.isFinite(timestamp)) {
     return false;
   }
+
+
+  if (!hash) {
+    return false;
+  }
+
 
   const SIX_HOURS =
     6 * 60 * 60 * 1000;
 
-  const age =
-    Date.now() - timestamp;
 
   if (
-    age < 0 ||
-    age > SIX_HOURS
+    Date.now() - timestamp >
+    SIX_HOURS
   ) {
+
     return false;
   }
 
-  /*
-   * Preserve existing authentication behavior.
-   * Token is structurally valid and within lifetime.
-   */
+
+  if (
+    Date.now() - timestamp < 0
+  ) {
+
+    return false;
+  }
+
+
+  // Token format / lifetime verification.
+  // Existing authentication architecture
+  // intentionally preserved.
   return true;
 }
 
 
 // ============================================================
-// REQUEST AUTH
+// AUTH HELPERS
 // ============================================================
 
 function getAuthorizationToken(request) {
+
   const header =
     request.headers.get(
       "Authorization"
     );
 
+
   if (!header) {
     return null;
   }
+
 
   if (
     header
       .toLowerCase()
       .startsWith("bearer ")
   ) {
+
     return header
       .slice(7)
       .trim();
   }
+
 
   return header.trim();
 }
 
 
 function getPassword(request) {
-  return (
-    request.headers.get(
-      "X-Password"
-    ) || null
-  );
+
+  return request.headers.get(
+    "X-Password"
+  ) || null;
 }
 
+
+// ============================================================
+// ADMIN AUTH
+// ============================================================
 
 async function requireAdmin(
   request,
   env
 ) {
+
   const password =
     getPassword(request);
 
+
   if (
     password &&
-    password ===
-      env.ADMIN_PASSWORD
+    password === env.ADMIN_PASSWORD
   ) {
+
     return true;
   }
+
 
   const token =
     getAuthorizationToken(
       request
     );
+
 
   if (
     token &&
@@ -671,8 +916,10 @@ async function requireAdmin(
       "admin"
     )
   ) {
+
     return true;
   }
+
 
   throw new Error(
     "Administrator authentication required"
@@ -680,25 +927,33 @@ async function requireAdmin(
 }
 
 
+// ============================================================
+// CR AUTH
+// ============================================================
+
 async function requireCR(
   request,
   env
 ) {
+
   const password =
     getPassword(request);
 
+
   if (
     password &&
-    password ===
-      env.CR_PASSWORD
+    password === env.CR_PASSWORD
   ) {
+
     return true;
   }
+
 
   const token =
     getAuthorizationToken(
       request
     );
+
 
   if (
     token &&
@@ -707,8 +962,10 @@ async function requireCR(
       "cr"
     )
   ) {
+
     return true;
   }
+
 
   throw new Error(
     "CR authentication required"
@@ -717,11 +974,305 @@ async function requireCR(
 
 
 // ============================================================
-// GITHUB API
+// CR LOGIN
+// IMPORTANT:
+// Frontend sends password through X-Password.
+// DO NOT call request.json() here.
+// ============================================================
+
+async function handleCRAuth(
+  request,
+  env
+) {
+
+  const password =
+    getPassword(request);
+
+
+  if (
+    !password ||
+    password !== env.CR_PASSWORD
+  ) {
+
+    return error(
+      "Invalid CR password",
+      401
+    );
+  }
+
+
+  const token =
+    await createToken("cr");
+
+
+  return json({
+    ok: true,
+    token,
+    expiresIn:
+      6 * 60 * 60,
+  });
+}
+
+
+// ============================================================
+// ADMIN LOGIN
+// IMPORTANT:
+// Frontend sends password through X-Password.
+// ============================================================
+
+async function handleAdminAuth(
+  request,
+  env
+) {
+
+  const password =
+    getPassword(request);
+
+
+  if (
+    !password ||
+    password !== env.ADMIN_PASSWORD
+  ) {
+
+    return error(
+      "Invalid admin password",
+      401
+    );
+  }
+
+
+  const token =
+    await createToken("admin");
+
+
+  return json({
+    ok: true,
+    token,
+    expiresIn:
+      6 * 60 * 60,
+  });
+}
+
+
+// ============================================================
+// STUDENT INFO
+// ============================================================
+
+function parseStudentId(crId) {
+
+  const normalized =
+    normalizeCRId(crId);
+
+
+  const departmentCode =
+    normalized.slice(0, 3);
+
+
+  const sessionCode =
+    normalized.slice(3, 4);
+
+
+  const admissionCode =
+    normalized.slice(4, 6);
+
+
+  const roll =
+    normalized.slice(6, 9);
+
+
+  if (
+    departmentCode !== "315"
+  ) {
+
+    throw new Error(
+      "This CR ID does not belong to CSE department"
+    );
+  }
+
+
+  let session;
+
+
+  if (sessionCode === "1") {
+
+    session = "Spring";
+
+  } else if (
+    sessionCode === "2"
+  ) {
+
+    session = "Fall";
+
+  } else {
+
+    throw new Error(
+      "Invalid session code in CR ID"
+    );
+  }
+
+
+  const admissionYear =
+    2000 +
+    Number(admissionCode);
+
+
+  return {
+
+    crId:
+      normalized,
+
+    departmentCode,
+
+    sessionCode,
+
+    session,
+
+    admissionYear,
+
+    roll,
+  };
+}
+
+
+async function handleStudentInfo(
+  request,
+  env
+) {
+
+  try {
+
+    await requireCR(
+      request,
+      env
+    );
+
+
+    const url =
+      new URL(
+        request.url
+      );
+
+
+    const crId =
+      normalizeCRId(
+        url.searchParams.get(
+          "crId"
+        )
+      );
+
+
+    const student =
+      parseStudentId(
+        crId
+      );
+
+
+    if (!env.DB) {
+
+      return error(
+        "Database is not configured",
+        500
+      );
+    }
+
+
+    const row =
+      await env.DB
+        .prepare(
+          `
+          SELECT *
+          FROM student_info
+          WHERE cr_id = ?
+          LIMIT 1
+          `
+        )
+        .bind(crId)
+        .first();
+
+
+    return json({
+
+      ok: true,
+
+      student:
+        row || student,
+
+    });
+
+  } catch (err) {
+
+    return error(
+      err?.message ||
+      "Unable to fetch student information",
+      400
+    );
+  }
+}
+
+
+// ============================================================
+// ACADEMIC CONFIG
+// ============================================================
+
+async function handleAcademicConfig(
+  request,
+  env
+) {
+
+  try {
+
+    await requireCR(
+      request,
+      env
+    );
+
+
+    if (!env.DB) {
+
+      return error(
+        "Database is not configured",
+        500
+      );
+    }
+
+
+    const result =
+      await env.DB
+        .prepare(
+          `
+          SELECT *
+          FROM academic_config
+          ORDER BY id ASC
+          `
+        )
+        .all();
+
+
+    return json({
+      ok: true,
+      config:
+        result.results || [],
+    });
+
+  } catch (err) {
+
+    return error(
+      err?.message ||
+      "Unable to fetch academic configuration",
+      400
+    );
+  }
+}
+
+
+// ============================================================
+// GITHUB HEADERS
 // ============================================================
 
 function githubHeaders(env) {
+
   return {
+
     "Authorization":
       `Bearer ${env.GITHUB_TOKEN}`,
 
@@ -737,101 +1288,209 @@ function githubHeaders(env) {
 }
 
 
+// ============================================================
+// GITHUB REQUEST
+// ============================================================
+
 async function githubRequest(
   env,
   path,
   options = {}
 ) {
+
   const url =
-    `https://api.github.com/repos/` +
-    `${env.GITHUB_OWNER}/` +
-    `${env.GITHUB_REPO}/` +
-    `contents/${path}`;
+    `https://api.github.com/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/contents/${path}`;
+
 
   return await fetch(
     url,
     {
+
       ...options,
 
       headers: {
+
         ...githubHeaders(env),
 
         ...(options.headers || {}),
+
       },
     }
   );
 }
 
 
+// ============================================================
+// GET GITHUB FILE
+// ============================================================
+
 async function getGithubFile(
   env,
   path
 ) {
-  const response =
-    await githubRequest(
-      env,
-      path
-    );
-
-  if (
-    response.status === 404
-  ) {
-    return null;
-  }
-
-  if (!response.ok) {
-    const text =
-      await response.text();
-
-    throw new Error(
-      `GitHub GET failed: ${response.status} ${text}`
-    );
-  }
-
-  return await response.json();
-}
-
-
-async function getGithubFileSha(
-  env,
-  path
-) {
-  const file =
-    await getGithubFile(
-      env,
-      path
-    );
-
-  return file?.sha || null;
-}
-
-
-async function uploadGithubFile(
-  env,
-  path,
-  content,
-  message,
-  sha = null
-) {
-  const body = {
-    message,
-
-    content,
-
-    branch:
-      env.GITHUB_BRANCH ||
-      "main",
-  };
-
-  if (sha) {
-    body.sha = sha;
-  }
 
   const response =
     await githubRequest(
       env,
       path,
       {
+        method: "GET",
+
+        headers: {
+          "Accept":
+            "application/vnd.github.raw+json",
+        },
+      }
+    );
+
+
+  if (!response.ok) {
+
+    if (
+      response.status === 404
+    ) {
+
+      return null;
+    }
+
+
+    const message =
+      await response.text();
+
+
+    throw new Error(
+      `GitHub GET failed (${response.status}): ${message}`
+    );
+  }
+
+
+  return await response.arrayBuffer();
+}
+
+
+// ============================================================
+// GET GITHUB FILE SHA
+// ============================================================
+
+async function getGithubFileSha(
+  env,
+  path
+) {
+
+  const response =
+    await githubRequest(
+      env,
+      path,
+      {
+        method: "GET",
+      }
+    );
+
+
+  if (!response.ok) {
+
+    if (
+      response.status === 404
+    ) {
+
+      return null;
+    }
+
+
+    const message =
+      await response.text();
+
+
+    throw new Error(
+      `GitHub metadata GET failed (${response.status}): ${message}`
+    );
+  }
+
+
+  const data =
+    await response.json();
+
+
+  return data.sha || null;
+}
+
+
+// ============================================================
+// UPLOAD GITHUB FILE
+// ============================================================
+
+async function uploadGithubFile(
+  env,
+  path,
+  buffer,
+  message,
+  existingSha = null
+) {
+
+  const bytes =
+    buffer instanceof ArrayBuffer
+      ? new Uint8Array(buffer)
+      : buffer instanceof Uint8Array
+        ? buffer
+        : new Uint8Array(buffer);
+
+
+  let binary = "";
+
+
+  const CHUNK_SIZE = 0x8000;
+
+
+  for (
+    let i = 0;
+    i < bytes.length;
+    i += CHUNK_SIZE
+  ) {
+
+    binary += String.fromCharCode(
+      ...bytes.subarray(
+        i,
+        Math.min(
+          i + CHUNK_SIZE,
+          bytes.length
+        )
+      )
+    );
+  }
+
+
+  const content =
+    btoa(binary);
+
+
+  const body = {
+
+    message:
+      message ||
+      "Upload file",
+
+    content,
+
+    branch:
+      env.GITHUB_BRANCH ||
+      "main",
+
+  };
+
+
+  if (existingSha) {
+
+    body.sha =
+      existingSha;
+  }
+
+
+  const response =
+    await githubRequest(
+      env,
+      path,
+      {
+
         method: "PUT",
 
         headers: {
@@ -844,30 +1503,56 @@ async function uploadGithubFile(
       }
     );
 
+
   if (!response.ok) {
-    const text =
+
+    const message =
       await response.text();
 
+
     throw new Error(
-      `GitHub upload failed: ${response.status} ${text}`
+      `GitHub upload failed (${response.status}): ${message}`
     );
   }
+
 
   return await response.json();
 }
 
 
+// ============================================================
+// DELETE GITHUB FILE
+// ============================================================
+
 async function deleteGithubFile(
   env,
   path,
-  sha,
   message
 ) {
+
+  const sha =
+    await getGithubFileSha(
+      env,
+      path
+    );
+
+
+  if (!sha) {
+
+    return {
+      ok: true,
+      deleted: false,
+      reason: "File not found",
+    };
+  }
+
+
   const response =
     await githubRequest(
       env,
       path,
       {
+
         method: "DELETE",
 
         headers: {
@@ -877,25 +1562,33 @@ async function deleteGithubFile(
 
         body:
           JSON.stringify({
-            message,
+
+            message:
+              message ||
+              "Delete file",
 
             sha,
 
             branch:
               env.GITHUB_BRANCH ||
               "main",
+
           }),
       }
     );
 
+
   if (!response.ok) {
-    const text =
+
+    const body =
       await response.text();
 
+
     throw new Error(
-      `GitHub delete failed: ${response.status} ${text}`
+      `GitHub delete failed (${response.status}): ${body}`
     );
   }
+
 
   return await response.json();
 }
@@ -908,86 +1601,177 @@ async function deleteGithubFile(
 async function readQuestionBankJson(
   env
 ) {
-  const path =
+
+  const jsonPath =
     env.GITHUB_JSON_PATH ||
     "questionbank.json";
 
-  const file =
-    await getGithubFile(
+
+  const response =
+    await githubRequest(
       env,
-      path
+      jsonPath,
+      {
+        method: "GET",
+      }
     );
 
-  if (!file) {
+
+  if (!response.ok) {
+
+    if (
+      response.status === 404
+    ) {
+
+      return {
+
+        data: {
+          version: "2.0",
+          lastUpdated:
+            new Date().toISOString(),
+          semesters: [],
+        },
+
+        sha: null,
+
+      };
+    }
+
+
+    const message =
+      await response.text();
+
+
     throw new Error(
-      "questionbank.json was not found in GitHub"
+      `Unable to read questionbank.json (${response.status}): ${message}`
     );
   }
 
-  const binary =
-    Uint8Array.from(
-      atob(
-        file.content.replace(
-          /\n/g,
-          ""
-        )
-      ),
-      char =>
-        char.charCodeAt(0)
-    );
 
-  const text =
-    new TextDecoder().decode(
-      binary
-    );
+  const githubData =
+    await response.json();
 
-  let data;
 
-  try {
-    data =
-      JSON.parse(text);
-  } catch {
+  if (!githubData.content) {
+
     throw new Error(
-      "questionbank.json contains invalid JSON"
+      "GitHub questionbank.json has no content"
     );
   }
+
+
+  const decoded =
+    atob(
+      githubData.content
+        .replace(/\s/g, "")
+    );
+
+
+  const data =
+    JSON.parse(decoded);
+
 
   return {
-    data,
-    sha: file.sha,
+
+    data:
+      ensureQuestionBankStructure(
+        data
+      ),
+
+    sha:
+      githubData.sha || null,
+
   };
 }
 
 
+// ============================================================
+// QUESTION BANK STRUCTURE
+// ============================================================
+
 function ensureQuestionBankStructure(
   data
 ) {
+
   if (
     !data ||
     typeof data !== "object"
   ) {
+
     data = {};
   }
+
 
   if (
     !Array.isArray(
       data.semesters
     )
   ) {
+
     data.semesters = [];
   }
 
+
   if (!data.version) {
-    data.version = "2.0";
+
+    data.version =
+      "2.0";
   }
+
 
   return data;
 }
 
 
-function sortSemesterFiles(
+// ============================================================
+// SORT SEMESTERS
+// ============================================================
+
+function sortSemesters(
+  semesters
+) {
+
+  return semesters.sort(
+    (a, b) => {
+
+      const aNum =
+        Number(
+          String(
+            a.name || ""
+          )
+            .replace(
+              /\D/g,
+              ""
+            )
+        );
+
+
+      const bNum =
+        Number(
+          String(
+            b.name || ""
+          )
+            .replace(
+              /\D/g,
+              ""
+            )
+        );
+
+
+      return aNum - bNum;
+    }
+  );
+}
+
+
+// ============================================================
+// SORT FILES
+// ============================================================
+
+function sortFiles(
   files
 ) {
+
   return files.sort(
     (a, b) =>
       String(
@@ -1006,46 +1790,28 @@ function sortSemesterFiles(
 }
 
 
-function sortSemesters(
-  semesters
-) {
-  return semesters.sort(
-    (a, b) =>
-      String(
-        a.name || ""
-      ).localeCompare(
-        String(
-          b.name || ""
-        ),
-        undefined,
-        {
-          numeric: true,
-        }
-      )
-  );
-}
-
-
 // ============================================================
-// ADD PAPER TO QUESTIONBANK.JSON
+// UPDATE QUESTIONBANK JSON
 // ============================================================
 
 async function updateQuestionBankJson(
   env,
   identity
 ) {
+
+  const jsonPath =
+    env.GITHUB_JSON_PATH ||
+    "questionbank.json";
+
+
   const {
-    data: originalData,
+    data,
     sha,
   } =
     await readQuestionBankJson(
       env
     );
 
-  const data =
-    ensureQuestionBankStructure(
-      originalData
-    );
 
   let semester =
     data.semesters.find(
@@ -1054,479 +1820,402 @@ async function updateQuestionBankJson(
         identity.semester
     );
 
+
   if (!semester) {
+
     semester = {
+
       name:
         identity.semester,
 
-      files: [],
+      papers: [],
+
     };
+
 
     data.semesters.push(
       semester
     );
   }
 
+
   if (
     !Array.isArray(
-      semester.files
+      semester.papers
     )
   ) {
-    semester.files = [];
+
+    semester.papers = [];
   }
 
-  const exists =
-    semester.files.some(
-      file =>
-        file.path ===
+
+  const existingIndex =
+    semester.papers.findIndex(
+      paper =>
+        paper.path ===
         identity.githubPath
     );
 
-  if (!exists) {
-    semester.files.push({
-      name:
-        identity.filename,
 
-      path:
-        identity.githubPath,
-    });
-  }
+  const paper = {
 
-  for (
-    const item of
-    data.semesters
+    name:
+      identity.filename,
+
+    path:
+      identity.githubPath,
+
+  };
+
+
+  if (
+    existingIndex >= 0
   ) {
-    if (
-      !Array.isArray(
-        item.files
-      )
-    ) {
-      item.files = [];
-    }
 
-    sortSemesterFiles(
-      item.files
+    semester.papers[
+      existingIndex
+    ] = paper;
+
+  } else {
+
+    semester.papers.push(
+      paper
     );
   }
+
+
+  sortFiles(
+    semester.papers
+  );
+
 
   sortSemesters(
     data.semesters
   );
 
+
   data.version =
     data.version ||
     "2.0";
 
+
   data.lastUpdated =
     new Date().toISOString();
 
-  const jsonString =
+
+  const content =
     JSON.stringify(
       data,
       null,
       2
-    ) + "\n";
+    );
+
 
   const encoded =
     btoa(
-      String.fromCharCode(
-        ...new TextEncoder()
-          .encode(
-            jsonString
-          )
+      unescape(
+        encodeURIComponent(
+          content
+        )
       )
     );
 
-  await uploadGithubFile(
-    env,
 
-    env.GITHUB_JSON_PATH ||
-      "questionbank.json",
+  const body = {
 
-    encoded,
+    message:
+      `Update questionbank.json for ${identity.filename}`,
 
-    `Update questionbank.json - add ${identity.filename}`,
+    content:
+      encoded,
 
-    sha
-  );
+    branch:
+      env.GITHUB_BRANCH ||
+      "main",
 
-  // Verify GitHub update
-  const {
-    data: verified
-  } =
+  };
+
+
+  if (sha) {
+
+    body.sha =
+      sha;
+  }
+
+
+  const response =
+    await githubRequest(
+      env,
+      jsonPath,
+      {
+
+        method: "PUT",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+
+        body:
+          JSON.stringify(body),
+
+      }
+    );
+
+
+  if (!response.ok) {
+
+    const message =
+      await response.text();
+
+
+    throw new Error(
+      `questionbank.json update failed (${response.status}): ${message}`
+    );
+  }
+
+
+  // ----------------------------------------------------------
+  // VERIFY
+  // ----------------------------------------------------------
+
+  const verify =
     await readQuestionBankJson(
       env
     );
 
+
   const verifiedSemester =
-    verified.semesters?.find(
+    verify.data.semesters.find(
       item =>
         item.name ===
         identity.semester
     );
 
-  const verifiedFile =
-    verifiedSemester?.files?.find(
-      file =>
-        file.path ===
+
+  const verified =
+    verifiedSemester?.papers?.some(
+      paper =>
+        paper.path ===
         identity.githubPath
     );
 
-  if (!verifiedFile) {
+
+  if (!verified) {
+
     throw new Error(
-      "questionbank.json verification failed"
+      "questionbank.json update could not be verified"
     );
   }
 
-  return verified;
+
+  return verify.data;
 }
 
 
 // ============================================================
-// REMOVE PAPER FROM QUESTIONBANK.JSON
+// REMOVE FROM QUESTIONBANK JSON
 // ============================================================
 
 async function removeFromQuestionBankJson(
   env,
   githubPath
 ) {
+
+  const jsonPath =
+    env.GITHUB_JSON_PATH ||
+    "questionbank.json";
+
+
   const {
-    data: originalData,
+    data,
     sha,
   } =
     await readQuestionBankJson(
       env
     );
 
-  const data =
-    ensureQuestionBankStructure(
-      originalData
-    );
 
-  let removed = false;
+  let changed =
+    false;
+
 
   for (
-    const semester of
-    data.semesters
+    const semester
+    of data.semesters
   ) {
+
     if (
       !Array.isArray(
-        semester.files
+        semester.papers
       )
     ) {
-      semester.files = [];
+
       continue;
     }
 
-    const before =
-      semester.files.length;
 
-    semester.files =
-      semester.files.filter(
-        file =>
-          file.path !==
+    const oldLength =
+      semester.papers.length;
+
+
+    semester.papers =
+      semester.papers.filter(
+        paper =>
+          paper.path !==
           githubPath
       );
 
+
     if (
-      semester.files.length !==
-      before
+      semester.papers.length !==
+      oldLength
     ) {
-      removed = true;
+
+      changed = true;
     }
   }
 
-  if (!removed) {
-    throw new Error(
-      "Question paper was not found in questionbank.json"
-    );
-  }
 
   data.semesters =
     data.semesters.filter(
       semester =>
         Array.isArray(
-          semester.files
+          semester.papers
         ) &&
-        semester.files.length > 0
+        semester.papers.length > 0
     );
 
-  for (
-    const semester of
-    data.semesters
-  ) {
-    sortSemesterFiles(
-      semester.files
-    );
-  }
 
   sortSemesters(
     data.semesters
   );
 
-  data.version =
-    data.version ||
-    "2.0";
+
+  if (!changed) {
+
+    return {
+
+      changed: false,
+      data,
+
+    };
+  }
+
 
   data.lastUpdated =
     new Date().toISOString();
 
-  const jsonString =
+
+  const content =
     JSON.stringify(
       data,
       null,
       2
-    ) + "\n";
+    );
+
 
   const encoded =
     btoa(
-      String.fromCharCode(
-        ...new TextEncoder()
-          .encode(
-            jsonString
-          )
+      unescape(
+        encodeURIComponent(
+          content
+        )
       )
     );
 
-  await uploadGithubFile(
-    env,
 
-    env.GITHUB_JSON_PATH ||
-      "questionbank.json",
+  const body = {
 
-    encoded,
+    message:
+      `Remove deleted question paper ${githubPath}`,
 
-    `Update questionbank.json - remove ${githubPath}`,
+    content:
+      encoded,
 
-    sha
-  );
+    branch:
+      env.GITHUB_BRANCH ||
+      "main",
 
-  return data;
+  };
+
+
+  if (sha) {
+
+    body.sha =
+      sha;
+  }
+
+
+  const response =
+    await githubRequest(
+      env,
+      jsonPath,
+      {
+
+        method: "PUT",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+
+        body:
+          JSON.stringify(body),
+
+      }
+    );
+
+
+  if (!response.ok) {
+
+    const message =
+      await response.text();
+
+
+    throw new Error(
+      `questionbank.json removal failed (${response.status}): ${message}`
+    );
+  }
+
+
+  return {
+
+    changed: true,
+    data,
+
+  };
 }
 
 
 // ============================================================
-// CHECK PUBLISHED PAPER
+// CHECK PUBLISHED
 // ============================================================
 
 async function isPublishedQuestionPaper(
   env,
   githubPath
 ) {
+
   const {
-    data,
+    data
   } =
     await readQuestionBankJson(
       env
     );
 
-  return (
-    data.semesters?.some(
-      semester =>
-        semester.files?.some(
-          file =>
-            file.path ===
-            githubPath
-        )
-    ) || false
+
+  return data.semesters.some(
+    semester =>
+      Array.isArray(
+        semester.papers
+      ) &&
+      semester.papers.some(
+        paper =>
+          paper.path ===
+          githubPath
+      )
   );
-}
-
-
-// ============================================================
-// CR AUTH
-// ============================================================
-
-async function handleCRAuth(
-  request,
-  env
-) {
-  let body;
-
-  try {
-    body =
-      await request.json();
-  } catch {
-    return error(
-      "Invalid JSON body"
-    );
-  }
-
-  const password =
-    normalizeString(
-      body.password
-    );
-
-  if (
-    !password ||
-    password !==
-      env.CR_PASSWORD
-  ) {
-    return error(
-      "Invalid CR password",
-      401
-    );
-  }
-
-  const token =
-    await createToken(
-      "cr"
-    );
-
-  return json({
-    ok: true,
-
-    token,
-
-    expiresIn:
-      6 * 60 * 60,
-  });
-}
-
-
-// ============================================================
-// ADMIN AUTH
-// ============================================================
-
-async function handleAdminAuth(
-  request,
-  env
-) {
-  let body;
-
-  try {
-    body =
-      await request.json();
-  } catch {
-    return error(
-      "Invalid JSON body"
-    );
-  }
-
-  const password =
-    normalizeString(
-      body.password
-    );
-
-  if (
-    !password ||
-    password !==
-      env.ADMIN_PASSWORD
-  ) {
-    return error(
-      "Invalid admin password",
-      401
-    );
-  }
-
-  const token =
-    await createToken(
-      "admin"
-    );
-
-  return json({
-    ok: true,
-
-    token,
-
-    expiresIn:
-      6 * 60 * 60,
-  });
-}
-
-
-// ============================================================
-// STUDENT INFO
-// ============================================================
-
-async function handleStudentInfo(
-  request,
-  env
-) {
-  try {
-    await requireCR(
-      request,
-      env
-    );
-
-    const url =
-      new URL(
-        request.url
-      );
-
-    const crId =
-      normalizeString(
-        url.searchParams.get(
-          "crId"
-        )
-      );
-
-    if (!crId) {
-      return error(
-        "CR ID is required"
-      );
-    }
-
-    const result =
-      await env.DB
-        .prepare(
-          `
-          SELECT *
-          FROM student_info
-          WHERE cr_id = ?
-          LIMIT 1
-          `
-        )
-        .bind(crId)
-        .first();
-
-    return json({
-      ok: true,
-
-      student:
-        result || null,
-    });
-  } catch (err) {
-    return error(
-      err.message,
-      401
-    );
-  }
-}
-
-
-// ============================================================
-// ACADEMIC CONFIG
-// ============================================================
-
-async function handleAcademicConfig(
-  request,
-  env
-) {
-  try {
-    const rows =
-      await env.DB
-        .prepare(
-          `
-          SELECT *
-          FROM academic_config
-          ORDER BY id ASC
-          `
-        )
-        .all();
-
-    return json({
-      ok: true,
-
-      config:
-        rows.results || [],
-    });
-  } catch (err) {
-    return error(
-      err.message,
-      500
-    );
-  }
 }
 
 
@@ -1538,64 +2227,102 @@ async function handleGithubTest(
   request,
   env
 ) {
+
   try {
+
     await requireAdmin(
       request,
       env
     );
 
-    const file =
-      await getGithubFile(
-        env,
-        env.GITHUB_JSON_PATH ||
-          "questionbank.json"
-      );
 
-    if (!file) {
+    if (
+      !env.GITHUB_OWNER ||
+      !env.GITHUB_REPO ||
+      !env.GITHUB_TOKEN
+    ) {
+
       return error(
-        "questionbank.json not found",
-        404
+        "GitHub environment variables are not configured",
+        500
       );
     }
 
+
+    const jsonPath =
+      env.GITHUB_JSON_PATH ||
+      "questionbank.json";
+
+
+    const branch =
+      env.GITHUB_BRANCH ||
+      "main";
+
+
+    const response =
+      await githubRequest(
+        env,
+        jsonPath,
+        {
+          method: "GET",
+        }
+      );
+
+
+    let sha =
+      null;
+
+
+    if (response.ok) {
+
+      const data =
+        await response.json();
+
+      sha =
+        data.sha || null;
+    }
+
+
     return json({
+
       ok: true,
 
       repository:
         `${env.GITHUB_OWNER}/${env.GITHUB_REPO}`,
 
-      branch:
-        env.GITHUB_BRANCH ||
-        "main",
+      branch,
 
-      jsonPath:
-        env.GITHUB_JSON_PATH ||
-        "questionbank.json",
+      jsonPath,
 
-      sha:
-        file.sha,
+      sha,
+
     });
+
   } catch (err) {
+
     return error(
-      err.message,
-      401
+      err?.message ||
+      "GitHub test failed",
+      400
     );
   }
 }
 
 
 // ============================================================
-// STUDENT UPLOAD REQUEST
+// UPLOAD REQUEST
 // ============================================================
 
 async function handleUploadRequest(
   request,
   env
 ) {
+
+  let pendingGithubPath =
+    null;
+
+
   try {
-    // =========================================
-    // STEP 1 — CR AUTHENTICATION
-    // =========================================
 
     await requireCR(
       request,
@@ -1603,35 +2330,25 @@ async function handleUploadRequest(
     );
 
 
-    // =========================================
-    // STEP 2 — READ MULTIPART FORM
-    // =========================================
+    // --------------------------------------------------------
+    // FORM DATA
+    // --------------------------------------------------------
 
-    let form;
+    const form =
+      await request.formData();
 
-    try {
-      form =
-        await request.formData();
-    } catch {
-      return error(
-        "Invalid upload form data"
-      );
-    }
-
-
-    // =========================================
-    // STEP 3 — REQUIRED BASIC INFORMATION
-    // =========================================
 
     const crId =
       normalizeCRId(
         form.get("crId")
       );
 
+
     const crName =
       normalizeCRName(
         form.get("crName")
       );
+
 
     const whatsappNumber =
       normalizeWhatsApp(
@@ -1641,63 +2358,30 @@ async function handleUploadRequest(
       );
 
 
-    // =========================================
-    // STEP 4 — ACADEMIC INFORMATION
-    // =========================================
+    const identity =
+      generateQuestionPaperIdentity({
 
-    const batch =
-      form.get("batch");
+        batch:
+          form.get("batch"),
 
-    const session =
-      form.get("session");
+        session:
+          form.get("session"),
 
-    const year =
-      form.get("year");
+        year:
+          form.get("year"),
 
-    const exam =
-      form.get("exam");
+        exam:
+          form.get("exam"),
 
-    const semester =
-      form.get("semester");
+        semester:
+          form.get("semester"),
 
+      });
 
-    // =========================================
-    // STEP 5 — PDF
-    // =========================================
 
     const file =
       form.get("file");
 
-
-    if (!file) {
-      return error(
-        "Question paper PDF is required"
-      );
-    }
-
-
-    // =========================================
-    // STEP 6 — GENERATE IDENTITY
-    // =========================================
-    //
-    // IMPORTANT:
-    // Frontend filename/github_path are ignored.
-    // Worker creates the official values.
-    //
-
-    const identity =
-      generateQuestionPaperIdentity({
-        batch,
-        session,
-        year,
-        exam,
-        semester,
-      });
-
-
-    // =========================================
-    // STEP 7 — PDF VALIDATION
-    // =========================================
 
     const pdfBuffer =
       await validatePdf(
@@ -1705,35 +2389,56 @@ async function handleUploadRequest(
       );
 
 
-    // =========================================
-    // STEP 8 — FINAL DUPLICATE CHECK
-    // =========================================
+    // --------------------------------------------------------
+    // IMPORTANT:
+    // Frontend filename/path are NOT trusted.
+    // --------------------------------------------------------
 
-    const existingFinal =
-      await getGithubFile(
+    pendingGithubPath =
+      `pending/${uuid()}.pdf`;
+
+
+    // --------------------------------------------------------
+    // CHECK DUPLICATE FINAL PAPER
+    // --------------------------------------------------------
+
+    const alreadyPublished =
+      await isPublishedQuestionPaper(
         env,
         identity.githubPath
       );
 
-    if (existingFinal) {
+
+    if (alreadyPublished) {
+
       return error(
-        "This question paper already exists",
+        "This question paper has already been published",
         409
       );
     }
 
 
-    // =========================================
-    // STEP 9 — PENDING DUPLICATE CHECK
-    // =========================================
+    // --------------------------------------------------------
+    // DATABASE
+    // --------------------------------------------------------
 
-    const pending =
+    if (!env.DB) {
+
+      return error(
+        "Database is not configured",
+        500
+      );
+    }
+
+
+    const duplicate =
       await env.DB
         .prepare(
           `
           SELECT id
           FROM upload_requests
           WHERE github_path = ?
+          AND status IN ('pending', 'processing')
           LIMIT 1
           `
         )
@@ -1742,59 +2447,43 @@ async function handleUploadRequest(
         )
         .first();
 
-    if (pending) {
+
+    if (duplicate) {
+
       return error(
-        "This question paper is already pending approval",
+        "A request for this question paper is already pending",
         409
       );
     }
 
 
-    // =========================================
-    // STEP 10 — CREATE UPLOAD ID
-    // =========================================
-
-    const uploadId =
-      uuid();
-
-    const pendingPath =
-      `pending/${uploadId}.pdf`;
-
-
-    // =========================================
-    // STEP 11 — ENCODE PDF
-    // =========================================
-
-    const encodedPdf =
-      btoa(
-        String.fromCharCode(
-          ...new Uint8Array(
-            pdfBuffer
-          )
-        )
-      );
-
-
-    // =========================================
-    // STEP 12 — UPLOAD TO PENDING
-    // =========================================
+    // --------------------------------------------------------
+    // UPLOAD TO GITHUB PENDING
+    // --------------------------------------------------------
 
     await uploadGithubFile(
+
       env,
 
-      pendingPath,
+      pendingGithubPath,
 
-      encodedPdf,
+      pdfBuffer,
 
-      `Add pending question paper ${uploadId}`
+      `Add pending question paper for ${identity.filename}`
+
     );
 
 
-    // =========================================
-    // STEP 13 — INSERT DB RECORD
-    // =========================================
+    // --------------------------------------------------------
+    // INSERT DATABASE RECORD
+    // --------------------------------------------------------
+
+    const id =
+      uuid();
+
 
     try {
+
       await env.DB
         .prepare(
           `
@@ -1813,11 +2502,13 @@ async function handleUploadRequest(
             status,
             created_at
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES
+          (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `
         )
         .bind(
-          uploadId,
+
+          id,
 
           crId,
 
@@ -1835,86 +2526,115 @@ async function handleUploadRequest(
 
           identity.githubPath,
 
-          pendingPath,
+          pendingGithubPath,
 
           "pending",
 
           new Date().toISOString()
+
         )
         .run();
 
+
     } catch (dbError) {
 
-      // =========================================
-      // ROLLBACK PENDING GITHUB FILE
-      // =========================================
+      // Rollback pending GitHub file
+      try {
 
-      const pendingFile =
-        await getGithubFile(
+        await deleteGithubFile(
+
           env,
-          pendingPath
+
+          pendingGithubPath,
+
+          `Rollback failed upload request ${identity.filename}`
+
         );
 
-      if (pendingFile) {
-        await deleteGithubFile(
-          env,
+      } catch (cleanupError) {
 
-          pendingPath,
-
-          pendingFile.sha,
-
-          `Rollback pending upload ${uploadId}`
+        console.error(
+          "Pending GitHub cleanup failed:",
+          cleanupError
         );
       }
+
 
       throw dbError;
     }
 
 
-    // =========================================
-    // STEP 14 — SUCCESS RESPONSE
-    // =========================================
+    // --------------------------------------------------------
+    // SUCCESS
+    // --------------------------------------------------------
 
     return json({
+
       ok: true,
 
       message:
-        "Question paper uploaded successfully and is waiting for admin approval.",
+        "Question paper submitted successfully and is waiting for admin approval.",
 
-      uploadId,
+      uploadId:
+        id,
 
       filename:
         identity.filename,
 
-      githubPath:
+      path:
         identity.githubPath,
 
-      semester:
-        identity.semester,
+      status:
+        "pending",
 
-      /*
-       * These values are returned only for
-       * confirmation/debugging.
-       *
-       * They are NOT trusted to create
-       * the GitHub filename/path.
-       */
       crId,
 
       crName,
 
       whatsappNumber,
+
     });
 
+
   } catch (err) {
+
     console.error(
       "Upload request error:",
       err
     );
 
+
+    // If pending file was uploaded but DB failed
+    // attempt cleanup.
+    if (
+      pendingGithubPath
+    ) {
+
+      try {
+
+        await deleteGithubFile(
+
+          env,
+
+          pendingGithubPath,
+
+          "Cleanup failed upload"
+
+        );
+
+      } catch (cleanupError) {
+
+        console.error(
+          "Cleanup error:",
+          cleanupError
+        );
+      }
+    }
+
+
     return error(
       err?.message ||
-        "Upload request failed",
+      "Upload request failed",
       400
     );
   }
@@ -1922,24 +2642,48 @@ async function handleUploadRequest(
 
 
 // ============================================================
-// ADMIN - PENDING UPLOADS
+// ADMIN UPLOADS
 // ============================================================
 
 async function handleAdminUploads(
   request,
   env
 ) {
+
   try {
+
     await requireAdmin(
       request,
       env
     );
 
-    const rows =
+
+    if (!env.DB) {
+
+      return error(
+        "Database is not configured",
+        500
+      );
+    }
+
+
+    const result =
       await env.DB
         .prepare(
           `
-          SELECT *
+          SELECT
+            id,
+            cr_id,
+            batch,
+            session,
+            year,
+            exam,
+            semester,
+            filename,
+            github_path,
+            pending_path,
+            status,
+            created_at
           FROM upload_requests
           WHERE status = 'pending'
           ORDER BY created_at DESC
@@ -1947,39 +2691,49 @@ async function handleAdminUploads(
         )
         .all();
 
+
     return json({
+
       ok: true,
 
       uploads:
-        rows.results || [],
+        result.results || [],
+
     });
+
   } catch (err) {
+
     return error(
-      err.message,
-      401
+      err?.message ||
+      "Unable to fetch pending uploads",
+      400
     );
   }
 }
 
 
 // ============================================================
-// ADMIN - PREVIEW PENDING PDF
+// ADMIN PREVIEW
 // ============================================================
 
 async function handleAdminPreview(
   request,
   env
 ) {
+
   try {
+
     await requireAdmin(
       request,
       env
     );
 
+
     const url =
       new URL(
         request.url
       );
+
 
     const id =
       normalizeString(
@@ -1988,11 +2742,23 @@ async function handleAdminPreview(
         )
       );
 
+
     if (!id) {
+
       return error(
         "Upload ID is required"
       );
     }
+
+
+    if (!env.DB) {
+
+      return error(
+        "Database is not configured",
+        500
+      );
+    }
+
 
     const row =
       await env.DB
@@ -2007,44 +2773,50 @@ async function handleAdminPreview(
         .bind(id)
         .first();
 
+
     if (!row) {
+
       return error(
         "Upload request not found",
         404
       );
     }
 
-    const file =
+
+    if (
+      !row.pending_path
+    ) {
+
+      return error(
+        "Pending PDF path not found",
+        404
+      );
+    }
+
+
+    const pdf =
       await getGithubFile(
         env,
         row.pending_path
       );
 
-    if (!file) {
+
+    if (!pdf) {
+
       return error(
-        "Pending PDF not found",
+        "Pending PDF not found on GitHub",
         404
       );
     }
 
-    const binary =
-      Uint8Array.from(
-        atob(
-          file.content.replace(
-            /\n/g,
-            ""
-          )
-        ),
-        char =>
-          char.charCodeAt(0)
-      );
 
     return new Response(
-      binary,
+      pdf,
       {
         status: 200,
 
         headers: {
+
           ...corsHeaders(),
 
           "Content-Type":
@@ -2055,45 +2827,70 @@ async function handleAdminPreview(
 
           "Cache-Control":
             "no-store",
+
         },
       }
     );
+
+
   } catch (err) {
+
     return error(
-      err.message,
-      401
+      err?.message ||
+      "Unable to preview PDF",
+      400
     );
   }
 }
 
 
 // ============================================================
-// ADMIN - APPROVE
+// ADMIN APPROVE
 // ============================================================
 
-async function handleApprove(
+async function handleAdminApprove(
   request,
   env
 ) {
+
   try {
+
     await requireAdmin(
       request,
       env
     );
 
+
     const body =
       await request.json();
 
+
     const id =
       normalizeString(
-        body.id
+        body?.id
       );
 
+
     if (!id) {
+
       return error(
         "Upload ID is required"
       );
     }
+
+
+    if (!env.DB) {
+
+      return error(
+        "Database is not configured",
+        500
+      );
+    }
+
+
+    // --------------------------------------------------------
+    // GET REQUEST
+    // --------------------------------------------------------
 
     const row =
       await env.DB
@@ -2108,169 +2905,207 @@ async function handleApprove(
         .bind(id)
         .first();
 
+
     if (!row) {
+
       return error(
         "Upload request not found",
         404
       );
     }
 
+
     if (
-      row.status !==
-      "pending"
+      row.status !== "pending"
     ) {
+
       return error(
-        "This upload request has already been processed"
+        `Upload cannot be approved because its current status is "${row.status}"`,
+        409
       );
     }
 
-    // =========================================
-    // LOCK ROW
-    // =========================================
 
-    await env.DB
-      .prepare(
-        `
-        UPDATE upload_requests
-        SET status = 'processing'
-        WHERE id = ?
-        `
-      )
-      .bind(id)
-      .run();
+    // --------------------------------------------------------
+    // LOCK REQUEST
+    // --------------------------------------------------------
+
+    const lock =
+      await env.DB
+        .prepare(
+          `
+          UPDATE upload_requests
+          SET status = 'processing'
+          WHERE id = ?
+          AND status = 'pending'
+          `
+        )
+        .bind(id)
+        .run();
+
+
+    if (
+      !lock.meta ||
+      lock.meta.changes !== 1
+    ) {
+
+      return error(
+        "This upload is already being processed",
+        409
+      );
+    }
+
+
+    let finalUploaded =
+      false;
+
+    let jsonUpdated =
+      false;
+
 
     try {
 
-      // =========================================
-      // GET PENDING PDF
-      // =========================================
+      // ------------------------------------------------------
+      // FETCH PENDING PDF
+      // ------------------------------------------------------
 
-      const pendingFile =
+      const pdf =
         await getGithubFile(
           env,
           row.pending_path
         );
 
-      if (!pendingFile) {
+
+      if (!pdf) {
+
         throw new Error(
-          "Pending PDF not found in GitHub"
+          "Pending PDF not found on GitHub"
         );
       }
 
 
-      // =========================================
-      // CHECK FINAL FILE
-      // =========================================
+      // ------------------------------------------------------
+      // CHECK FINAL DUPLICATE
+      // ------------------------------------------------------
 
-      const finalExisting =
-        await getGithubFile(
+      const published =
+        await isPublishedQuestionPaper(
           env,
           row.github_path
         );
 
-      if (finalExisting) {
+
+      if (published) {
+
         throw new Error(
-          "Final question paper already exists"
+          "This question paper is already published"
         );
       }
 
 
-      // =========================================
-      // COPY PENDING → FINAL
-      // =========================================
+      // ------------------------------------------------------
+      // GET EXISTING FINAL SHA
+      // ------------------------------------------------------
 
-      const encoded =
-        pendingFile.content.replace(
-          /\n/g,
-          ""
+      const existingSha =
+        await getGithubFileSha(
+          env,
+          row.github_path
         );
 
+
+      // ------------------------------------------------------
+      // UPLOAD FINAL PDF
+      // ------------------------------------------------------
+
       await uploadGithubFile(
+
         env,
 
         row.github_path,
 
-        encoded,
+        pdf,
 
-        `Publish ${row.filename}`
+        `Publish question paper ${row.filename}`,
+
+        existingSha
+
       );
 
 
-      // =========================================
+      finalUploaded =
+        true;
+
+
+      // ------------------------------------------------------
       // UPDATE QUESTIONBANK.JSON
-      // =========================================
+      // ------------------------------------------------------
 
-      const identity = {
-        filename:
-          row.filename,
+      const identity =
+        {
 
-        githubPath:
-          row.github_path,
+          batchNo:
+            Number(row.batch),
 
-        semester:
-          row.semester,
-      };
+          session:
+            row.session,
 
-      try {
-        await updateQuestionBankJson(
-          env,
-          identity
-        );
+          year:
+            Number(row.year),
 
-      } catch (jsonError) {
+          exam:
+            row.exam,
 
-        // =========================================
-        // ROLLBACK FINAL PDF
-        // =========================================
+          semester:
+            row.semester,
 
-        const finalFile =
-          await getGithubFile(
-            env,
-            row.github_path
-          );
+          filename:
+            row.filename,
 
-        if (finalFile) {
-          await deleteGithubFile(
-            env,
-
+          githubPath:
             row.github_path,
 
-            finalFile.sha,
-
-            `Rollback failed approval ${row.id}`
-          );
-        }
-
-        throw jsonError;
-      }
+        };
 
 
-      // =========================================
-      // DELETE PENDING COPY
-      // =========================================
+      await updateQuestionBankJson(
+        env,
+        identity
+      );
 
-      const pendingAfter =
-        await getGithubFile(
-          env,
-          row.pending_path
-        );
 
-      if (pendingAfter) {
+      jsonUpdated =
+        true;
+
+
+      // ------------------------------------------------------
+      // DELETE PENDING FILE
+      // ------------------------------------------------------
+
+      try {
+
         await deleteGithubFile(
+
           env,
 
           row.pending_path,
 
-          pendingAfter.sha,
+          `Remove pending file after approval ${row.filename}`
 
-          `Remove pending upload ${row.id}`
+        );
+
+      } catch (cleanupError) {
+
+        console.error(
+          "Pending cleanup after approval failed:",
+          cleanupError
         );
       }
 
 
-      // =========================================
-      // REMOVE DB ROW
-      // =========================================
+      // ------------------------------------------------------
+      // DELETE DB REQUEST
+      // ------------------------------------------------------
 
       await env.DB
         .prepare(
@@ -2283,11 +3118,8 @@ async function handleApprove(
         .run();
 
 
-      // =========================================
-      // SUCCESS
-      // =========================================
-
       return json({
+
         ok: true,
 
         message:
@@ -2296,38 +3128,113 @@ async function handleApprove(
         filename:
           row.filename,
 
-        githubPath:
+        path:
           row.github_path,
+
+        status:
+          "approved",
+
       });
+
 
     } catch (processingError) {
 
-      // =========================================
-      // RESTORE PENDING STATUS
-      // =========================================
+      console.error(
+        "Approval processing error:",
+        processingError
+      );
 
-      await env.DB
-        .prepare(
-          `
-          UPDATE upload_requests
-          SET status = 'pending'
-          WHERE id = ?
-          `
-        )
-        .bind(id)
-        .run();
+
+      // ------------------------------------------------------
+      // ROLLBACK JSON
+      // ------------------------------------------------------
+
+      if (
+        jsonUpdated
+      ) {
+
+        try {
+
+          await removeFromQuestionBankJson(
+            env,
+            row.github_path
+          );
+
+        } catch (rollbackJsonError) {
+
+          console.error(
+            "JSON rollback failed:",
+            rollbackJsonError
+          );
+        }
+      }
+
+
+      // ------------------------------------------------------
+      // ROLLBACK FINAL PDF
+      // ------------------------------------------------------
+
+      if (
+        finalUploaded
+      ) {
+
+        try {
+
+          await deleteGithubFile(
+
+            env,
+
+            row.github_path,
+
+            `Rollback failed approval ${row.filename}`
+
+          );
+
+        } catch (rollbackPdfError) {
+
+          console.error(
+            "Final PDF rollback failed:",
+            rollbackPdfError
+          );
+        }
+      }
+
+
+      // ------------------------------------------------------
+      // RESTORE PENDING STATUS
+      // ------------------------------------------------------
+
+      try {
+
+        await env.DB
+          .prepare(
+            `
+            UPDATE upload_requests
+            SET status = 'pending'
+            WHERE id = ?
+            `
+          )
+          .bind(id)
+          .run();
+
+      } catch (statusError) {
+
+        console.error(
+          "Status rollback failed:",
+          statusError
+        );
+      }
+
 
       throw processingError;
     }
 
+
   } catch (err) {
-    console.error(
-      "Approve error:",
-      err
-    );
 
     return error(
-      err.message,
+      err?.message ||
+      "Approval failed",
       400
     );
   }
@@ -2335,32 +3242,48 @@ async function handleApprove(
 
 
 // ============================================================
-// ADMIN - REJECT
+// ADMIN REJECT
 // ============================================================
 
-async function handleReject(
+async function handleAdminReject(
   request,
   env
 ) {
+
   try {
+
     await requireAdmin(
       request,
       env
     );
 
+
     const body =
       await request.json();
 
+
     const id =
       normalizeString(
-        body.id
+        body?.id
       );
 
+
     if (!id) {
+
       return error(
         "Upload ID is required"
       );
     }
+
+
+    if (!env.DB) {
+
+      return error(
+        "Database is not configured",
+        500
+      );
+    }
+
 
     const row =
       await env.DB
@@ -2375,32 +3298,61 @@ async function handleReject(
         .bind(id)
         .first();
 
+
     if (!row) {
+
       return error(
         "Upload request not found",
         404
       );
     }
 
-    if (row.pending_path) {
-      const pendingFile =
-        await getGithubFile(
-          env,
-          row.pending_path
-        );
 
-      if (pendingFile) {
+    if (
+      row.status !== "pending"
+    ) {
+
+      return error(
+        `Upload cannot be rejected because its current status is "${row.status}"`,
+        409
+      );
+    }
+
+
+    // --------------------------------------------------------
+    // DELETE PENDING PDF
+    // --------------------------------------------------------
+
+    if (
+      row.pending_path
+    ) {
+
+      try {
+
         await deleteGithubFile(
+
           env,
 
           row.pending_path,
 
-          pendingFile.sha,
+          `Reject question paper ${row.filename}`
 
-          `Reject question paper ${row.id}`
+        );
+
+      } catch (githubError) {
+
+        return error(
+          githubError?.message ||
+          "Unable to delete pending PDF",
+          500
         );
       }
     }
+
+
+    // --------------------------------------------------------
+    // DELETE DATABASE REQUEST
+    // --------------------------------------------------------
 
     await env.DB
       .prepare(
@@ -2412,16 +3364,27 @@ async function handleReject(
       .bind(id)
       .run();
 
+
     return json({
+
       ok: true,
 
       message:
-        "Question paper rejected successfully.",
+        "Question paper rejected and removed successfully.",
+
+      id,
+
+      status:
+        "rejected",
+
     });
 
+
   } catch (err) {
+
     return error(
-      err.message,
+      err?.message ||
+      "Reject failed",
       400
     );
   }
@@ -2429,27 +3392,32 @@ async function handleReject(
 
 
 // ============================================================
-// ADMIN - PUBLISHED PAPERS
+// ADMIN PUBLISHED
 // ============================================================
 
 async function handleAdminPublished(
   request,
   env
 ) {
+
   try {
+
     await requireAdmin(
       request,
       env
     );
 
+
     const {
-      data,
+      data
     } =
       await readQuestionBankJson(
         env
       );
 
+
     return json({
+
       ok: true,
 
       repository:
@@ -2459,71 +3427,82 @@ async function handleAdminPublished(
         env.GITHUB_BRANCH ||
         "main",
 
-      semesters:
-        data.semesters || [],
+      jsonPath:
+        env.GITHUB_JSON_PATH ||
+        "questionbank.json",
 
-      version:
-        data.version || "2.0",
+      questionBank:
+        data,
 
-      lastUpdated:
-        data.lastUpdated || null,
     });
 
+
   } catch (err) {
+
     return error(
-      err.message,
-      401
+      err?.message ||
+      "Unable to fetch published question papers",
+      400
     );
   }
 }
 
 
 // ============================================================
-// ADMIN - DELETE PUBLISHED PAPER
+// ADMIN DELETE PUBLISHED QUESTION
 // ============================================================
 
 async function handleAdminDelete(
   request,
   env
 ) {
+
   try {
+
     await requireAdmin(
       request,
       env
     );
 
+
     const body =
       await request.json();
 
+
     const githubPath =
       normalizeString(
-        body.path
+        body?.path
       );
 
+
     if (!githubPath) {
+
       return error(
         "Question paper path is required"
       );
     }
 
-    // =========================================
-    // SECURITY VALIDATION
-    // =========================================
 
-    if (
-      !/^Semester_(0[1-8])\/[^/]+\.pdf$/i.test(
-        githubPath
-      )
-    ) {
+    // --------------------------------------------------------
+    // SECURITY VALIDATION
+    // --------------------------------------------------------
+
+    const validPath =
+      /^Semester_(0[1-8])\/[^/]+\.pdf$/i
+        .test(githubPath);
+
+
+    if (!validPath) {
+
       return error(
         "Invalid question paper path"
       );
     }
 
 
-    // =========================================
-    // VERIFY PUBLISHED
-    // =========================================
+    // --------------------------------------------------------
+    // VERIFY IT IS ACTUALLY PUBLISHED
+    // --------------------------------------------------------
 
     const published =
       await isPublishedQuestionPaper(
@@ -2531,7 +3510,9 @@ async function handleAdminDelete(
         githubPath
       );
 
+
     if (!published) {
+
       return error(
         "Question paper is not published in questionbank.json",
         404
@@ -2539,105 +3520,117 @@ async function handleAdminDelete(
     }
 
 
-    // =========================================
-    // GET GITHUB FILE
-    // =========================================
+    // --------------------------------------------------------
+    // GET PDF BEFORE DELETE
+    // Used for rollback if JSON update fails.
+    // --------------------------------------------------------
 
-    const githubFile =
+    const pdf =
       await getGithubFile(
         env,
         githubPath
       );
 
-    if (!githubFile) {
+
+    if (!pdf) {
+
       return error(
-        "Question paper PDF was not found in GitHub",
+        "Published PDF not found on GitHub",
         404
       );
     }
 
 
-    // =========================================
-    // BACKUP
-    // =========================================
-
-    const backupContent =
-      githubFile.content.replace(
-        /\n/g,
-        ""
-      );
-
-    const originalSha =
-      githubFile.sha;
-
-
-    // =========================================
-    // STEP 1 — DELETE PDF
-    // =========================================
+    // --------------------------------------------------------
+    // DELETE PDF
+    // --------------------------------------------------------
 
     await deleteGithubFile(
+
       env,
 
       githubPath,
 
-      originalSha,
+      `Delete published question paper ${githubPath}`
 
-      `Delete question paper ${githubPath}`
     );
 
 
-    // =========================================
-    // STEP 2 — REMOVE FROM JSON
-    // =========================================
-
     try {
+
+      // ------------------------------------------------------
+      // REMOVE FROM QUESTIONBANK.JSON
+      // ------------------------------------------------------
+
       await removeFromQuestionBankJson(
+
         env,
+
         githubPath
+
       );
+
 
     } catch (jsonError) {
 
-      // =========================================
-      // ROLLBACK PDF
-      // =========================================
-
-      await uploadGithubFile(
-        env,
-
-        githubPath,
-
-        backupContent,
-
-        `Restore question paper after failed delete ${githubPath}`
+      console.error(
+        "JSON update failed after PDF deletion:",
+        jsonError
       );
+
+
+      // ------------------------------------------------------
+      // RESTORE PDF
+      // ------------------------------------------------------
+
+      try {
+
+        await uploadGithubFile(
+
+          env,
+
+          githubPath,
+
+          pdf,
+
+          `Restore question paper after failed delete ${githubPath}`
+
+        );
+
+      } catch (restoreError) {
+
+        console.error(
+          "CRITICAL: PDF restore failed:",
+          restoreError
+        );
+      }
+
 
       throw jsonError;
     }
 
 
-    // =========================================
-    // SUCCESS
-    // =========================================
-
     return json({
+
       ok: true,
 
       message:
-        "Question paper deleted successfully.",
+        "Published question paper deleted successfully.",
 
       path:
         githubPath,
+
+      status:
+        "deleted",
+
     });
 
+
   } catch (err) {
-    console.error(
-      "Delete error:",
-      err
-    );
 
     return error(
-      err.message,
+      err?.message ||
+      "Delete failed",
       400
     );
   }
