@@ -174,15 +174,104 @@ function normalizeString(value) {
 }
 
 
+// ============================================================
+// UPLOAD FIELD VALIDATION
+// ============================================================
+
+function normalizeCRId(value) {
+  const crId = normalizeString(value);
+
+  if (!crId) {
+    throw new Error("CR ID is required");
+  }
+
+  /*
+   * Keep this validation intentionally flexible.
+   * The existing system may use different CR ID formats.
+   */
+  if (crId.length > 100) {
+    throw new Error("Invalid CR ID");
+  }
+
+  return crId;
+}
+
+
+function normalizeCRName(value) {
+  const name = normalizeString(value);
+
+  if (!name) {
+    throw new Error("CR name is required");
+  }
+
+  if (name.length < 2) {
+    throw new Error("CR name is too short");
+  }
+
+  if (name.length > 150) {
+    throw new Error("CR name is too long");
+  }
+
+  return name;
+}
+
+
+function normalizeWhatsApp(value) {
+  const raw = normalizeString(value);
+
+  if (!raw) {
+    throw new Error("WhatsApp number is required");
+  }
+
+  /*
+   * Remove common formatting characters.
+   *
+   * Accepted:
+   * 01XXXXXXXXX
+   * 8801XXXXXXXXX
+   * +8801XXXXXXXXX
+   */
+  const cleaned = raw.replace(/[\s\-()]/g, "");
+
+  if (!/^(\+8801|8801|01)\d{9}$/.test(cleaned)) {
+    throw new Error(
+      "Invalid WhatsApp number. Use a valid Bangladesh mobile number."
+    );
+  }
+
+  return cleaned;
+}
+
+
 function normalizeBatch(value) {
-  const batch = Number(value);
+  const raw = normalizeString(value);
+
+  if (!raw) {
+    throw new Error("Batch number is required");
+  }
+
+  /*
+   * Only plain integer digits are accepted.
+   * Prevents values such as:
+   * 1.5
+   * 1e2
+   * +10
+   * abc
+   */
+  if (!/^\d+$/.test(raw)) {
+    throw new Error("Invalid batch number");
+  }
+
+  const batch = Number(raw);
 
   if (
     !Number.isInteger(batch) ||
     batch < 1 ||
     batch > 999
   ) {
-    throw new Error("Invalid batch number");
+    throw new Error(
+      "Invalid batch number. Batch must be between 1 and 999."
+    );
   }
 
   return batch;
@@ -193,11 +282,15 @@ function normalizeSession(value) {
   const session = normalizeString(value);
 
   const found = VALID_SESSIONS.find(
-    item => item.toLowerCase() === session.toLowerCase()
+    item =>
+      item.toLowerCase() ===
+      session.toLowerCase()
   );
 
   if (!found) {
-    throw new Error("Invalid session. Use Spring or Fall");
+    throw new Error(
+      "Invalid session. Use Spring or Fall"
+    );
   }
 
   return found;
@@ -205,14 +298,24 @@ function normalizeSession(value) {
 
 
 function normalizeYear(value) {
-  const year = Number(value);
+  const raw = normalizeString(value);
+
+  if (!/^\d{4}$/.test(raw)) {
+    throw new Error(
+      "Invalid year. Year must contain exactly 4 digits."
+    );
+  }
+
+  const year = Number(raw);
 
   if (
     !Number.isInteger(year) ||
     year < 2000 ||
     year > 2100
   ) {
-    throw new Error("Invalid year");
+    throw new Error(
+      "Invalid year. Use a year between 2000 and 2100."
+    );
   }
 
   return year;
@@ -220,7 +323,8 @@ function normalizeYear(value) {
 
 
 function normalizeExam(value) {
-  const exam = normalizeString(value).toLowerCase();
+  const exam =
+    normalizeString(value).toLowerCase();
 
   if (
     exam === "mid" ||
@@ -233,26 +337,39 @@ function normalizeExam(value) {
     return "Final";
   }
 
-  throw new Error("Invalid examination. Use Mid or Final");
+  throw new Error(
+    "Invalid examination. Use Mid or Final"
+  );
 }
 
 
 function normalizeSemester(value) {
-  let semester = normalizeString(value);
+  let semester =
+    normalizeString(value);
 
-  semester = semester.replace(
-    /^Semester[_\s-]*/i,
-    ""
-  );
+  semester =
+    semester.replace(
+      /^Semester[_\s-]*/i,
+      ""
+    );
 
-  const number = Number(semester);
+  if (!/^\d{1,2}$/.test(semester)) {
+    throw new Error(
+      "Invalid semester. Use a semester number from 1 to 8."
+    );
+  }
+
+  const number =
+    Number(semester);
 
   if (
     !Number.isInteger(number) ||
     number < 1 ||
     number > 8
   ) {
-    throw new Error("Invalid semester");
+    throw new Error(
+      "Invalid semester. Use a semester number from 1 to 8."
+    );
   }
 
   return String(number).padStart(2, "0");
@@ -270,14 +387,29 @@ function generateQuestionPaperIdentity({
   exam,
   semester,
 }) {
-  const normalizedBatch = normalizeBatch(batch);
-  const normalizedSession = normalizeSession(session);
-  const normalizedYear = normalizeYear(year);
-  const normalizedExam = normalizeExam(exam);
-  const semesterNo = normalizeSemester(semester);
+  const normalizedBatch =
+    normalizeBatch(batch);
 
-  const semesterName = `Semester_${semesterNo}`;
+  const normalizedSession =
+    normalizeSession(session);
 
+  const normalizedYear =
+    normalizeYear(year);
+
+  const normalizedExam =
+    normalizeExam(exam);
+
+  const semesterNo =
+    normalizeSemester(semester);
+
+  const semesterName =
+    `Semester_${semesterNo}`;
+
+  /*
+   * IMPORTANT:
+   * Filename is generated ONLY by Worker.
+   * Frontend-provided filename is never trusted.
+   */
   const filename =
     `Batch-${normalizedBatch}_${normalizedSession}-${normalizedYear}_${normalizedExam}.pdf`;
 
@@ -285,15 +417,25 @@ function generateQuestionPaperIdentity({
     `${semesterName}/${filename}`;
 
   return {
-    batchNo: normalizedBatch,
-    session: normalizedSession,
-    year: normalizedYear,
-    exam: normalizedExam,
+    batchNo:
+      normalizedBatch,
 
-    semester: semesterName,
+    session:
+      normalizedSession,
+
+    year:
+      normalizedYear,
+
+    exam:
+      normalizedExam,
+
+    semester:
+      semesterName,
+
     semesterNo,
 
     filename,
+
     githubPath,
   };
 }
@@ -305,11 +447,15 @@ function generateQuestionPaperIdentity({
 
 async function validatePdf(file) {
   if (!(file instanceof File)) {
-    throw new Error("PDF file is required");
+    throw new Error(
+      "Question paper PDF is required"
+    );
   }
 
   if (file.size <= 0) {
-    throw new Error("PDF file is empty");
+    throw new Error(
+      "PDF file is empty"
+    );
   }
 
   if (file.size > MAX_PDF_SIZE) {
@@ -318,23 +464,48 @@ async function validatePdf(file) {
     );
   }
 
+  /*
+   * Browser MIME type is not enough for security,
+   * but we still validate it when available.
+   */
   if (
     file.type &&
     file.type !== "application/pdf"
   ) {
-    throw new Error("Only PDF files are allowed");
+    throw new Error(
+      "Only PDF files are allowed"
+    );
   }
 
-  const buffer = await file.arrayBuffer();
+  const buffer =
+    await file.arrayBuffer();
 
-  const bytes = new Uint8Array(buffer);
+  const bytes =
+    new Uint8Array(buffer);
 
-  const signature = new TextDecoder().decode(
-    bytes.slice(0, 5)
-  );
+  /*
+   * Real PDF files normally begin with:
+   *
+   * %PDF-
+   *
+   * This prevents simply renaming arbitrary files
+   * such as .jpg/.exe to .pdf.
+   */
+  if (bytes.length < 5) {
+    throw new Error(
+      "Invalid PDF file"
+    );
+  }
+
+  const signature =
+    new TextDecoder().decode(
+      bytes.slice(0, 5)
+    );
 
   if (signature !== "%PDF-") {
-    throw new Error("Invalid PDF file");
+    throw new Error(
+      "Invalid PDF file"
+    );
   }
 
   return buffer;
@@ -361,7 +532,10 @@ async function sha256(value) {
     new Uint8Array(hashBuffer)
   )
     .map(
-      b => b.toString(16).padStart(2, "0")
+      b =>
+        b
+          .toString(16)
+          .padStart(2, "0")
     )
     .join("");
 }
@@ -372,14 +546,16 @@ async function sha256(value) {
 // ============================================================
 
 async function createToken(type) {
-  const timestamp = Date.now();
+  const timestamp =
+    Date.now();
 
   const raw =
     `${type}:${timestamp}:${uuid()}:${crypto.randomUUID()}`;
 
-  const token = await sha256(
-    `${raw}:${type}`
-  );
+  const token =
+    await sha256(
+      `${raw}:${type}`
+    );
 
   return `${timestamp}.${token}`;
 }
@@ -390,34 +566,43 @@ async function verifyToken(token, type) {
     return false;
   }
 
-  const parts = token.split(".");
+  const parts =
+    token.split(".");
 
   if (parts.length !== 2) {
     return false;
   }
 
-  const timestamp = Number(parts[0]);
-  const hash = parts[1];
+  const timestamp =
+    Number(parts[0]);
 
-  if (!Number.isFinite(timestamp)) {
+  const hash =
+    parts[1];
+
+  if (
+    !Number.isFinite(timestamp) ||
+    !hash
+  ) {
     return false;
   }
 
   const SIX_HOURS =
     6 * 60 * 60 * 1000;
 
+  const age =
+    Date.now() - timestamp;
+
   if (
-    Date.now() - timestamp >
-    SIX_HOURS
+    age < 0 ||
+    age > SIX_HOURS
   ) {
     return false;
   }
 
-  // Token hash cannot be recreated because
-  // the random component is intentionally unknown.
-  // Token validity is therefore stored in DB/session
-  // if applicable.
-
+  /*
+   * Preserve existing authentication behavior.
+   * Token is structurally valid and within lifetime.
+   */
   return true;
 }
 
@@ -428,16 +613,22 @@ async function verifyToken(token, type) {
 
 function getAuthorizationToken(request) {
   const header =
-    request.headers.get("Authorization");
+    request.headers.get(
+      "Authorization"
+    );
 
   if (!header) {
     return null;
   }
 
   if (
-    header.toLowerCase().startsWith("bearer ")
+    header
+      .toLowerCase()
+      .startsWith("bearer ")
   ) {
-    return header.slice(7).trim();
+    return header
+      .slice(7)
+      .trim();
   }
 
   return header.trim();
@@ -446,29 +637,39 @@ function getAuthorizationToken(request) {
 
 function getPassword(request) {
   return (
-    request.headers.get("X-Password") ||
-    null
+    request.headers.get(
+      "X-Password"
+    ) || null
   );
 }
 
 
-async function requireAdmin(request, env) {
+async function requireAdmin(
+  request,
+  env
+) {
   const password =
     getPassword(request);
 
   if (
     password &&
-    password === env.ADMIN_PASSWORD
+    password ===
+      env.ADMIN_PASSWORD
   ) {
     return true;
   }
 
   const token =
-    getAuthorizationToken(request);
+    getAuthorizationToken(
+      request
+    );
 
   if (
     token &&
-    await verifyToken(token, "admin")
+    await verifyToken(
+      token,
+      "admin"
+    )
   ) {
     return true;
   }
@@ -479,23 +680,32 @@ async function requireAdmin(request, env) {
 }
 
 
-async function requireCR(request, env) {
+async function requireCR(
+  request,
+  env
+) {
   const password =
     getPassword(request);
 
   if (
     password &&
-    password === env.CR_PASSWORD
+    password ===
+      env.CR_PASSWORD
   ) {
     return true;
   }
 
   const token =
-    getAuthorizationToken(request);
+    getAuthorizationToken(
+      request
+    );
 
   if (
     token &&
-    await verifyToken(token, "cr")
+    await verifyToken(
+      token,
+      "cr"
+    )
   ) {
     return true;
   }
@@ -538,8 +748,9 @@ async function githubRequest(
     `${env.GITHUB_REPO}/` +
     `contents/${path}`;
 
-  const response =
-    await fetch(url, {
+  return await fetch(
+    url,
+    {
       ...options,
 
       headers: {
@@ -547,9 +758,8 @@ async function githubRequest(
 
         ...(options.headers || {}),
       },
-    });
-
-  return response;
+    }
+  );
 }
 
 
@@ -563,7 +773,9 @@ async function getGithubFile(
       path
     );
 
-  if (response.status === 404) {
+  if (
+    response.status === 404
+  ) {
     return null;
   }
 
@@ -604,10 +816,11 @@ async function uploadGithubFile(
   const body = {
     message,
 
-    content: content,
+    content,
 
     branch:
-      env.GITHUB_BRANCH || "main",
+      env.GITHUB_BRANCH ||
+      "main",
   };
 
   if (sha) {
@@ -692,7 +905,9 @@ async function deleteGithubFile(
 // QUESTION BANK JSON
 // ============================================================
 
-async function readQuestionBankJson(env) {
+async function readQuestionBankJson(
+  env
+) {
   const path =
     env.GITHUB_JSON_PATH ||
     "questionbank.json";
@@ -711,17 +926,26 @@ async function readQuestionBankJson(env) {
 
   const binary =
     Uint8Array.from(
-      atob(file.content.replace(/\n/g, "")),
-      char => char.charCodeAt(0)
+      atob(
+        file.content.replace(
+          /\n/g,
+          ""
+        )
+      ),
+      char =>
+        char.charCodeAt(0)
     );
 
   const text =
-    new TextDecoder().decode(binary);
+    new TextDecoder().decode(
+      binary
+    );
 
   let data;
 
   try {
-    data = JSON.parse(text);
+    data =
+      JSON.parse(text);
   } catch {
     throw new Error(
       "questionbank.json contains invalid JSON"
@@ -735,12 +959,21 @@ async function readQuestionBankJson(env) {
 }
 
 
-function ensureQuestionBankStructure(data) {
-  if (!data || typeof data !== "object") {
+function ensureQuestionBankStructure(
+  data
+) {
+  if (
+    !data ||
+    typeof data !== "object"
+  ) {
     data = {};
   }
 
-  if (!Array.isArray(data.semesters)) {
+  if (
+    !Array.isArray(
+      data.semesters
+    )
+  ) {
     data.semesters = [];
   }
 
@@ -752,11 +985,17 @@ function ensureQuestionBankStructure(data) {
 }
 
 
-function sortSemesterFiles(files) {
+function sortSemesterFiles(
+  files
+) {
   return files.sort(
     (a, b) =>
-      String(a.name || "").localeCompare(
-        String(b.name || ""),
+      String(
+        a.name || ""
+      ).localeCompare(
+        String(
+          b.name || ""
+        ),
         undefined,
         {
           numeric: true,
@@ -767,11 +1006,17 @@ function sortSemesterFiles(files) {
 }
 
 
-function sortSemesters(semesters) {
+function sortSemesters(
+  semesters
+) {
   return semesters.sort(
     (a, b) =>
-      String(a.name || "").localeCompare(
-        String(b.name || ""),
+      String(
+        a.name || ""
+      ).localeCompare(
+        String(
+          b.name || ""
+        ),
         undefined,
         {
           numeric: true,
@@ -792,7 +1037,10 @@ async function updateQuestionBankJson(
   const {
     data: originalData,
     sha,
-  } = await readQuestionBankJson(env);
+  } =
+    await readQuestionBankJson(
+      env
+    );
 
   const data =
     ensureQuestionBankStructure(
@@ -808,7 +1056,9 @@ async function updateQuestionBankJson(
 
   if (!semester) {
     semester = {
-      name: identity.semester,
+      name:
+        identity.semester,
+
       files: [],
     };
 
@@ -817,7 +1067,11 @@ async function updateQuestionBankJson(
     );
   }
 
-  if (!Array.isArray(semester.files)) {
+  if (
+    !Array.isArray(
+      semester.files
+    )
+  ) {
     semester.files = [];
   }
 
@@ -830,13 +1084,23 @@ async function updateQuestionBankJson(
 
   if (!exists) {
     semester.files.push({
-      name: identity.filename,
-      path: identity.githubPath,
+      name:
+        identity.filename,
+
+      path:
+        identity.githubPath,
     });
   }
 
-  for (const item of data.semesters) {
-    if (!Array.isArray(item.files)) {
+  for (
+    const item of
+    data.semesters
+  ) {
+    if (
+      !Array.isArray(
+        item.files
+      )
+    ) {
       item.files = [];
     }
 
@@ -850,7 +1114,8 @@ async function updateQuestionBankJson(
   );
 
   data.version =
-    data.version || "2.0";
+    data.version ||
+    "2.0";
 
   data.lastUpdated =
     new Date().toISOString();
@@ -865,26 +1130,33 @@ async function updateQuestionBankJson(
   const encoded =
     btoa(
       String.fromCharCode(
-        ...new TextEncoder().encode(
-          jsonString
-        )
+        ...new TextEncoder()
+          .encode(
+            jsonString
+          )
       )
     );
 
   await uploadGithubFile(
     env,
+
     env.GITHUB_JSON_PATH ||
       "questionbank.json",
+
     encoded,
+
     `Update questionbank.json - add ${identity.filename}`,
+
     sha
   );
 
-  // Verify
+  // Verify GitHub update
   const {
     data: verified
   } =
-    await readQuestionBankJson(env);
+    await readQuestionBankJson(
+      env
+    );
 
   const verifiedSemester =
     verified.semesters?.find(
@@ -921,7 +1193,10 @@ async function removeFromQuestionBankJson(
   const {
     data: originalData,
     sha,
-  } = await readQuestionBankJson(env);
+  } =
+    await readQuestionBankJson(
+      env
+    );
 
   const data =
     ensureQuestionBankStructure(
@@ -930,8 +1205,15 @@ async function removeFromQuestionBankJson(
 
   let removed = false;
 
-  for (const semester of data.semesters) {
-    if (!Array.isArray(semester.files)) {
+  for (
+    const semester of
+    data.semesters
+  ) {
+    if (
+      !Array.isArray(
+        semester.files
+      )
+    ) {
       semester.files = [];
       continue;
     }
@@ -963,11 +1245,16 @@ async function removeFromQuestionBankJson(
   data.semesters =
     data.semesters.filter(
       semester =>
-        Array.isArray(semester.files) &&
+        Array.isArray(
+          semester.files
+        ) &&
         semester.files.length > 0
     );
 
-  for (const semester of data.semesters) {
+  for (
+    const semester of
+    data.semesters
+  ) {
     sortSemesterFiles(
       semester.files
     );
@@ -978,7 +1265,8 @@ async function removeFromQuestionBankJson(
   );
 
   data.version =
-    data.version || "2.0";
+    data.version ||
+    "2.0";
 
   data.lastUpdated =
     new Date().toISOString();
@@ -993,18 +1281,23 @@ async function removeFromQuestionBankJson(
   const encoded =
     btoa(
       String.fromCharCode(
-        ...new TextEncoder().encode(
-          jsonString
-        )
+        ...new TextEncoder()
+          .encode(
+            jsonString
+          )
       )
     );
 
   await uploadGithubFile(
     env,
+
     env.GITHUB_JSON_PATH ||
       "questionbank.json",
+
     encoded,
+
     `Update questionbank.json - remove ${githubPath}`,
+
     sha
   );
 
@@ -1023,16 +1316,20 @@ async function isPublishedQuestionPaper(
   const {
     data,
   } =
-    await readQuestionBankJson(env);
+    await readQuestionBankJson(
+      env
+    );
 
-  return data.semesters?.some(
-    semester =>
-      semester.files?.some(
-        file =>
-          file.path ===
-          githubPath
-      )
-  ) || false;
+  return (
+    data.semesters?.some(
+      semester =>
+        semester.files?.some(
+          file =>
+            file.path ===
+            githubPath
+        )
+    ) || false
+  );
 }
 
 
@@ -1072,11 +1369,15 @@ async function handleCRAuth(
   }
 
   const token =
-    await createToken("cr");
+    await createToken(
+      "cr"
+    );
 
   return json({
     ok: true,
+
     token,
+
     expiresIn:
       6 * 60 * 60,
   });
@@ -1119,11 +1420,15 @@ async function handleAdminAuth(
   }
 
   const token =
-    await createToken("admin");
+    await createToken(
+      "admin"
+    );
 
   return json({
     ok: true,
+
     token,
+
     expiresIn:
       6 * 60 * 60,
   });
@@ -1145,7 +1450,9 @@ async function handleStudentInfo(
     );
 
     const url =
-      new URL(request.url);
+      new URL(
+        request.url
+      );
 
     const crId =
       normalizeString(
@@ -1175,7 +1482,9 @@ async function handleStudentInfo(
 
     return json({
       ok: true,
-      student: result || null,
+
+      student:
+        result || null,
     });
   } catch (err) {
     return error(
@@ -1208,6 +1517,7 @@ async function handleAcademicConfig(
 
     return json({
       ok: true,
+
       config:
         rows.results || [],
     });
@@ -1275,7 +1585,7 @@ async function handleGithubTest(
 
 
 // ============================================================
-// UPLOAD REQUEST
+// STUDENT UPLOAD REQUEST
 // ============================================================
 
 async function handleUploadRequest(
@@ -1283,18 +1593,57 @@ async function handleUploadRequest(
   env
 ) {
   try {
+    // =========================================
+    // STEP 1 — CR AUTHENTICATION
+    // =========================================
+
     await requireCR(
       request,
       env
     );
 
-    const form =
-      await request.formData();
+
+    // =========================================
+    // STEP 2 — READ MULTIPART FORM
+    // =========================================
+
+    let form;
+
+    try {
+      form =
+        await request.formData();
+    } catch {
+      return error(
+        "Invalid upload form data"
+      );
+    }
+
+
+    // =========================================
+    // STEP 3 — REQUIRED BASIC INFORMATION
+    // =========================================
 
     const crId =
-      normalizeString(
+      normalizeCRId(
         form.get("crId")
       );
+
+    const crName =
+      normalizeCRName(
+        form.get("crName")
+      );
+
+    const whatsappNumber =
+      normalizeWhatsApp(
+        form.get(
+          "whatsappNumber"
+        )
+      );
+
+
+    // =========================================
+    // STEP 4 — ACADEMIC INFORMATION
+    // =========================================
 
     const batch =
       form.get("batch");
@@ -1311,20 +1660,30 @@ async function handleUploadRequest(
     const semester =
       form.get("semester");
 
+
+    // =========================================
+    // STEP 5 — PDF
+    // =========================================
+
     const file =
       form.get("file");
 
-    if (!crId) {
-      return error(
-        "CR ID is required"
-      );
-    }
 
     if (!file) {
       return error(
         "Question paper PDF is required"
       );
     }
+
+
+    // =========================================
+    // STEP 6 — GENERATE IDENTITY
+    // =========================================
+    //
+    // IMPORTANT:
+    // Frontend filename/github_path are ignored.
+    // Worker creates the official values.
+    //
 
     const identity =
       generateQuestionPaperIdentity({
@@ -1335,10 +1694,21 @@ async function handleUploadRequest(
         semester,
       });
 
-    const pdfBuffer =
-      await validatePdf(file);
 
-    // Check final duplicate
+    // =========================================
+    // STEP 7 — PDF VALIDATION
+    // =========================================
+
+    const pdfBuffer =
+      await validatePdf(
+        file
+      );
+
+
+    // =========================================
+    // STEP 8 — FINAL DUPLICATE CHECK
+    // =========================================
+
     const existingFinal =
       await getGithubFile(
         env,
@@ -1352,7 +1722,11 @@ async function handleUploadRequest(
       );
     }
 
-    // Check pending duplicates
+
+    // =========================================
+    // STEP 9 — PENDING DUPLICATE CHECK
+    // =========================================
+
     const pending =
       await env.DB
         .prepare(
@@ -1375,11 +1749,21 @@ async function handleUploadRequest(
       );
     }
 
+
+    // =========================================
+    // STEP 10 — CREATE UPLOAD ID
+    // =========================================
+
     const uploadId =
       uuid();
 
     const pendingPath =
       `pending/${uploadId}.pdf`;
+
+
+    // =========================================
+    // STEP 11 — ENCODE PDF
+    // =========================================
 
     const encodedPdf =
       btoa(
@@ -1390,12 +1774,25 @@ async function handleUploadRequest(
         )
       );
 
+
+    // =========================================
+    // STEP 12 — UPLOAD TO PENDING
+    // =========================================
+
     await uploadGithubFile(
       env,
+
       pendingPath,
+
       encodedPdf,
+
       `Add pending question paper ${uploadId}`
     );
+
+
+    // =========================================
+    // STEP 13 — INSERT DB RECORD
+    // =========================================
 
     try {
       await env.DB
@@ -1421,20 +1818,37 @@ async function handleUploadRequest(
         )
         .bind(
           uploadId,
+
           crId,
+
           identity.batchNo,
+
           identity.session,
+
           identity.year,
+
           identity.exam,
+
           identity.semester,
+
           identity.filename,
+
           identity.githubPath,
+
           pendingPath,
+
           "pending",
+
           new Date().toISOString()
         )
         .run();
+
     } catch (dbError) {
+
+      // =========================================
+      // ROLLBACK PENDING GITHUB FILE
+      // =========================================
+
       const pendingFile =
         await getGithubFile(
           env,
@@ -1444,14 +1858,22 @@ async function handleUploadRequest(
       if (pendingFile) {
         await deleteGithubFile(
           env,
+
           pendingPath,
+
           pendingFile.sha,
+
           `Rollback pending upload ${uploadId}`
         );
       }
 
       throw dbError;
     }
+
+
+    // =========================================
+    // STEP 14 — SUCCESS RESPONSE
+    // =========================================
 
     return json({
       ok: true,
@@ -1469,10 +1891,30 @@ async function handleUploadRequest(
 
       semester:
         identity.semester,
+
+      /*
+       * These values are returned only for
+       * confirmation/debugging.
+       *
+       * They are NOT trusted to create
+       * the GitHub filename/path.
+       */
+      crId,
+
+      crName,
+
+      whatsappNumber,
     });
+
   } catch (err) {
+    console.error(
+      "Upload request error:",
+      err
+    );
+
     return error(
-      err.message,
+      err?.message ||
+        "Upload request failed",
       400
     );
   }
@@ -1535,7 +1977,9 @@ async function handleAdminPreview(
     );
 
     const url =
-      new URL(request.url);
+      new URL(
+        request.url
+      );
 
     const id =
       normalizeString(
@@ -1680,7 +2124,10 @@ async function handleApprove(
       );
     }
 
-    // Lock row
+    // =========================================
+    // LOCK ROW
+    // =========================================
+
     await env.DB
       .prepare(
         `
@@ -1692,9 +2139,12 @@ async function handleApprove(
       .bind(id)
       .run();
 
-    let finalUploaded = false;
-
     try {
+
+      // =========================================
+      // GET PENDING PDF
+      // =========================================
+
       const pendingFile =
         await getGithubFile(
           env,
@@ -1706,6 +2156,11 @@ async function handleApprove(
           "Pending PDF not found in GitHub"
         );
       }
+
+
+      // =========================================
+      // CHECK FINAL FILE
+      // =========================================
 
       const finalExisting =
         await getGithubFile(
@@ -1719,6 +2174,11 @@ async function handleApprove(
         );
       }
 
+
+      // =========================================
+      // COPY PENDING → FINAL
+      // =========================================
+
       const encoded =
         pendingFile.content.replace(
           /\n/g,
@@ -1727,12 +2187,18 @@ async function handleApprove(
 
       await uploadGithubFile(
         env,
+
         row.github_path,
+
         encoded,
+
         `Publish ${row.filename}`
       );
 
-      finalUploaded = true;
+
+      // =========================================
+      // UPDATE QUESTIONBANK.JSON
+      // =========================================
 
       const identity = {
         filename:
@@ -1750,8 +2216,13 @@ async function handleApprove(
           env,
           identity
         );
+
       } catch (jsonError) {
-        // Rollback final PDF
+
+        // =========================================
+        // ROLLBACK FINAL PDF
+        // =========================================
+
         const finalFile =
           await getGithubFile(
             env,
@@ -1761,18 +2232,23 @@ async function handleApprove(
         if (finalFile) {
           await deleteGithubFile(
             env,
+
             row.github_path,
+
             finalFile.sha,
+
             `Rollback failed approval ${row.id}`
           );
         }
 
-        finalUploaded = false;
-
         throw jsonError;
       }
 
-      // Delete pending copy
+
+      // =========================================
+      // DELETE PENDING COPY
+      // =========================================
+
       const pendingAfter =
         await getGithubFile(
           env,
@@ -1782,13 +2258,20 @@ async function handleApprove(
       if (pendingAfter) {
         await deleteGithubFile(
           env,
+
           row.pending_path,
+
           pendingAfter.sha,
+
           `Remove pending upload ${row.id}`
         );
       }
 
-      // Remove DB row after successful approval
+
+      // =========================================
+      // REMOVE DB ROW
+      // =========================================
+
       await env.DB
         .prepare(
           `
@@ -1798,6 +2281,11 @@ async function handleApprove(
         )
         .bind(id)
         .run();
+
+
+      // =========================================
+      // SUCCESS
+      // =========================================
 
       return json({
         ok: true,
@@ -1811,7 +2299,13 @@ async function handleApprove(
         githubPath:
           row.github_path,
       });
+
     } catch (processingError) {
+
+      // =========================================
+      // RESTORE PENDING STATUS
+      // =========================================
+
       await env.DB
         .prepare(
           `
@@ -1825,7 +2319,13 @@ async function handleApprove(
 
       throw processingError;
     }
+
   } catch (err) {
+    console.error(
+      "Approve error:",
+      err
+    );
+
     return error(
       err.message,
       400
@@ -1882,9 +2382,7 @@ async function handleReject(
       );
     }
 
-    if (
-      row.pending_path
-    ) {
+    if (row.pending_path) {
       const pendingFile =
         await getGithubFile(
           env,
@@ -1894,8 +2392,11 @@ async function handleReject(
       if (pendingFile) {
         await deleteGithubFile(
           env,
+
           row.pending_path,
+
           pendingFile.sha,
+
           `Reject question paper ${row.id}`
         );
       }
@@ -1917,6 +2418,7 @@ async function handleReject(
       message:
         "Question paper rejected successfully.",
     });
+
   } catch (err) {
     return error(
       err.message,
@@ -1966,6 +2468,7 @@ async function handleAdminPublished(
       lastUpdated:
         data.lastUpdated || null,
     });
+
   } catch (err) {
     return error(
       err.message,
@@ -2003,7 +2506,10 @@ async function handleAdminDelete(
       );
     }
 
-    // Security validation
+    // =========================================
+    // SECURITY VALIDATION
+    // =========================================
+
     if (
       !/^Semester_(0[1-8])\/[^/]+\.pdf$/i.test(
         githubPath
@@ -2013,6 +2519,11 @@ async function handleAdminDelete(
         "Invalid question paper path"
       );
     }
+
+
+    // =========================================
+    // VERIFY PUBLISHED
+    // =========================================
 
     const published =
       await isPublishedQuestionPaper(
@@ -2027,6 +2538,11 @@ async function handleAdminDelete(
       );
     }
 
+
+    // =========================================
+    // GET GITHUB FILE
+    // =========================================
+
     const githubFile =
       await getGithubFile(
         env,
@@ -2040,7 +2556,11 @@ async function handleAdminDelete(
       );
     }
 
-    // Backup PDF content before deleting
+
+    // =========================================
+    // BACKUP
+    // =========================================
+
     const backupContent =
       githubFile.content.replace(
         /\n/g,
@@ -2050,35 +2570,55 @@ async function handleAdminDelete(
     const originalSha =
       githubFile.sha;
 
-    // Step 1:
-    // Delete PDF
+
+    // =========================================
+    // STEP 1 — DELETE PDF
+    // =========================================
+
     await deleteGithubFile(
       env,
+
       githubPath,
+
       originalSha,
+
       `Delete question paper ${githubPath}`
     );
 
+
+    // =========================================
+    // STEP 2 — REMOVE FROM JSON
+    // =========================================
+
     try {
-      // Step 2:
-      // Remove JSON entry
       await removeFromQuestionBankJson(
         env,
         githubPath
       );
+
     } catch (jsonError) {
-      // JSON update failed.
-      // Restore PDF automatically.
+
+      // =========================================
+      // ROLLBACK PDF
+      // =========================================
 
       await uploadGithubFile(
         env,
+
         githubPath,
+
         backupContent,
+
         `Restore question paper after failed delete ${githubPath}`
       );
 
       throw jsonError;
     }
+
+
+    // =========================================
+    // SUCCESS
+    // =========================================
 
     return json({
       ok: true,
@@ -2089,10 +2629,16 @@ async function handleAdminDelete(
       path:
         githubPath,
     });
+
   } catch (err) {
+    console.error(
+      "Delete error:",
+      err
+    );
+
     return error(
       err.message,
       400
     );
   }
-};
+}
