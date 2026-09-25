@@ -3632,6 +3632,10 @@ async function handleAdminPublished(
     );
 
 
+    // --------------------------------------------------------
+    // READ QUESTIONBANK.JSON FROM GITHUB
+    // --------------------------------------------------------
+
     const {
       data
     } =
@@ -3639,6 +3643,16 @@ async function handleAdminPublished(
         env
       );
 
+
+    const semesters =
+      Array.isArray(data?.semesters)
+        ? data.semesters
+        : [];
+
+
+    // --------------------------------------------------------
+    // RETURN PUBLISHED DATA
+    // --------------------------------------------------------
 
     return json({
 
@@ -3656,13 +3670,54 @@ async function handleAdminPublished(
         env.GITHUB_JSON_PATH ||
         "questionbank.json",
 
+
+      // Full question bank
       questionBank:
         data,
+
+
+      // Compatibility: some admin frontends
+      // may directly read data.published
+      published:
+        data,
+
+
+      // Compatibility: some admin frontends
+      // may directly read data.semesters
+      semesters,
+
+
+      totalSemesters:
+        semesters.length,
+
+
+      totalPapers:
+        semesters.reduce(
+          (
+            total,
+            semester
+          ) =>
+            total +
+            (
+              Array.isArray(
+                semester?.papers
+              )
+                ? semester.papers.length
+                : 0
+            ),
+          0
+        ),
 
     });
 
 
   } catch (err) {
+
+    console.error(
+      "Admin published error:",
+      err
+    );
+
 
     return error(
       err?.message ||
