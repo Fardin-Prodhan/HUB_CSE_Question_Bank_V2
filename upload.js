@@ -54,19 +54,13 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("uploadButton");
 
     const generatedPathPreview =
-        document.getElementById(
-            "generatedPathPreview"
-        );
+        document.getElementById("generatedPathPreview");
 
     const generatedFilename =
-        document.getElementById(
-            "generatedFilename"
-        );
+        document.getElementById("generatedFilename");
 
     const generatedPath =
-        document.getElementById(
-            "generatedPath"
-        );
+        document.getElementById("generatedPath");
 
 
     // =========================================
@@ -74,17 +68,60 @@ document.addEventListener("DOMContentLoaded", () => {
     // =========================================
 
     let selectedPDF = null;
+    let isSubmitting = false;
 
 
     // =========================================
     // INITIAL STATE
     // =========================================
 
-    if (submitButton) {
+    updateGeneratedPath();
+    updateSubmitState();
 
-        submitButton.disabled = true;
 
-    }
+    // =========================================
+    // ALL FORM INPUTS
+    // =========================================
+
+    const formInputs = [
+        crIdInput,
+        crNameInput,
+        whatsappInput,
+        batchInput,
+        sessionInput,
+        yearInput,
+        examInput,
+        semesterInput
+    ];
+
+
+    formInputs.forEach(input => {
+
+        if (!input) {
+            return;
+        }
+
+        input.addEventListener(
+            "input",
+            () => {
+
+                updateGeneratedPath();
+                updateSubmitState();
+
+            }
+        );
+
+        input.addEventListener(
+            "change",
+            () => {
+
+                updateGeneratedPath();
+                updateSubmitState();
+
+            }
+        );
+
+    });
 
 
     // =========================================
@@ -99,6 +136,10 @@ document.addEventListener("DOMContentLoaded", () => {
         fileUploadButton.addEventListener(
             "click",
             () => {
+
+                if (isSubmitting) {
+                    return;
+                }
 
                 pdfFileInput.click();
 
@@ -118,10 +159,16 @@ document.addEventListener("DOMContentLoaded", () => {
             "change",
             async () => {
 
+                if (isSubmitting) {
+                    return;
+                }
+
                 const file =
                     pdfFileInput.files[0];
 
                 if (!file) {
+
+                    resetPDF();
 
                     return;
 
@@ -154,12 +201,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 // -----------------------------
 
                 if (
-                    file.size >
-                    MAX_FILE_SIZE
+                    file.size <= 0 ||
+                    file.size > MAX_FILE_SIZE
                 ) {
 
                     showMessage(
-                        "PDF size must be 15 MB or less.",
+                        "PDF size must be greater than 0 and 15 MB or less.",
                         "error"
                     );
 
@@ -175,9 +222,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 // -----------------------------
 
                 const isPDF =
-                    await checkPDFSignature(
-                        file
-                    );
+                    await checkPDFSignature(file);
 
 
                 if (!isPDF) {
@@ -197,9 +242,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 selectedPDF = file;
 
 
-                showPDFPreview(
-                    file
-                );
+                showPDFPreview(file);
 
 
                 showMessage(
@@ -217,39 +260,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     // =========================================
-    // LIVE PATH GENERATION
-    // =========================================
-
-    const academicInputs = [
-        batchInput,
-        sessionInput,
-        yearInput,
-        examInput,
-        semesterInput
-    ];
-
-
-    academicInputs.forEach(
-        input => {
-
-            if (!input) {
-
-                return;
-
-            }
-
-
-            input.addEventListener(
-                "input",
-                updateGeneratedPath
-            );
-
-        }
-    );
-
-
-    // =========================================
-    // GENERATE FILENAME + PATH
+    // GENERATE FILE DATA
     // =========================================
 
     function getGeneratedFileData() {
@@ -315,7 +326,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     // =========================================
-    // UPDATE GENERATED PATH PREVIEW
+    // UPDATE GENERATED PATH
     // =========================================
 
     function updateGeneratedPath() {
@@ -372,25 +383,229 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     // =========================================
+    // VALIDATE BASIC INFORMATION
+    // =========================================
+
+    function getBasicValidation() {
+
+        const crId =
+            crIdInput?.value.trim() || "";
+
+        const crName =
+            crNameInput?.value.trim() || "";
+
+        const whatsapp =
+            whatsappInput?.value.trim() || "";
+
+
+        if (!crId) {
+
+            return {
+                valid: false,
+                field: crIdInput,
+                message: "Please enter your CR ID."
+            };
+
+        }
+
+
+        if (!crName) {
+
+            return {
+                valid: false,
+                field: crNameInput,
+                message: "Please enter your name."
+            };
+
+        }
+
+
+        if (!whatsapp) {
+
+            return {
+                valid: false,
+                field: whatsappInput,
+                message:
+                    "Please enter your WhatsApp number."
+            };
+
+        }
+
+
+        const normalizedWhatsApp =
+            whatsapp.replace(
+                /[\s\-()]/g,
+                ""
+            );
+
+
+        const validBangladeshNumber =
+            /^(\+8801|8801|01)\d{9}$/
+                .test(
+                    normalizedWhatsApp
+                );
+
+
+        if (!validBangladeshNumber) {
+
+            return {
+                valid: false,
+                field: whatsappInput,
+                message:
+                    "Please enter a valid Bangladesh WhatsApp number."
+            };
+
+        }
+
+
+        return {
+            valid: true,
+            normalizedWhatsApp
+        };
+
+    }
+
+
+    // =========================================
+    // VALIDATE ACADEMIC INFORMATION
+    // =========================================
+
+    function getAcademicValidation() {
+
+        const batch =
+            normalizeBatch(
+                batchInput?.value
+            );
+
+        if (!batch) {
+
+            return {
+                valid: false,
+                field: batchInput,
+                message:
+                    "Batch number must contain numbers only."
+            };
+
+        }
+
+
+        const session =
+            normalizeSession(
+                sessionInput?.value
+            );
+
+        if (!session) {
+
+            return {
+                valid: false,
+                field: sessionInput,
+                message:
+                    "Session must be Spring or Fall."
+            };
+
+        }
+
+
+        const year =
+            normalizeYear(
+                yearInput?.value
+            );
+
+        if (!year) {
+
+            return {
+                valid: false,
+                field: yearInput,
+                message:
+                    "Academic year must be a valid 4-digit year."
+            };
+
+        }
+
+
+        const exam =
+            normalizeExam(
+                examInput?.value
+            );
+
+        if (!exam) {
+
+            return {
+                valid: false,
+                field: examInput,
+                message:
+                    "Examination must be Mid or Final."
+            };
+
+        }
+
+
+        const semester =
+            normalizeSemester(
+                semesterInput?.value
+            );
+
+        if (!semester) {
+
+            return {
+                valid: false,
+                field: semesterInput,
+                message:
+                    "Semester must be between 01 and 08."
+            };
+
+        }
+
+
+        return {
+            valid: true,
+            batch,
+            session,
+            year,
+            exam,
+            semester
+        };
+
+    }
+
+
+    // =========================================
     // SUBMIT STATE
     // =========================================
 
     function updateSubmitState() {
 
         if (!submitButton) {
+            return;
+        }
+
+
+        if (isSubmitting) {
+
+            submitButton.disabled = true;
 
             return;
 
         }
 
 
-        const academicData =
-            getGeneratedFileData();
+        const basic =
+            getBasicValidation();
+
+        const academic =
+            getAcademicValidation();
+
+
+        const pdfValid =
+            selectedPDF &&
+            selectedPDF.size > 0 &&
+            selectedPDF.size <= MAX_FILE_SIZE;
 
 
         submitButton.disabled =
-            !selectedPDF ||
-            !academicData;
+            !basic.valid ||
+            !academic.valid ||
+            !pdfValid;
 
     }
 
@@ -456,18 +671,14 @@ document.addEventListener("DOMContentLoaded", () => {
             raw.toLowerCase();
 
 
-        if (
-            normalized === "spring"
-        ) {
+        if (normalized === "spring") {
 
             return "Spring";
 
         }
 
 
-        if (
-            normalized === "fall"
-        ) {
+        if (normalized === "fall") {
 
             return "Fall";
 
@@ -538,9 +749,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
-        if (
-            raw === "final"
-        ) {
+        if (raw === "final") {
 
             return "Final";
 
@@ -591,7 +800,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     // =========================================
-    // PDF SIGNATURE CHECK
+    // PDF SIGNATURE
     // =========================================
 
     async function checkPDFSignature(file) {
@@ -637,9 +846,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function showPDFPreview(file) {
 
         if (!pdfPreview) {
-
             return;
-
         }
 
 
@@ -718,138 +925,57 @@ document.addEventListener("DOMContentLoaded", () => {
                 event.preventDefault();
 
 
-                // =================================
-                // BASIC INFORMATION
-                // =================================
-
-                const crId =
-                    crIdInput.value.trim();
-
-
-                const crName =
-                    crNameInput.value.trim();
-
-
-                const whatsappNumber =
-                    whatsappInput
-                        ? whatsappInput.value.trim()
-                        : "";
-
-
-                // =================================
-                // ACADEMIC INFORMATION
-                // =================================
-
-                const batch =
-                    normalizeBatch(
-                        batchInput.value
-                    );
-
-
-                const session =
-                    normalizeSession(
-                        sessionInput.value
-                    );
-
-
-                const year =
-                    normalizeYear(
-                        yearInput.value
-                    );
-
-
-                const exam =
-                    normalizeExam(
-                        examInput.value
-                    );
-
-
-                const semester =
-                    normalizeSemester(
-                        semesterInput.value
-                    );
-
-
-                // =================================
-                // CR ID
-                // =================================
-
-                if (!crId) {
-
-                    showMessage(
-                        "Please enter your CR ID.",
-                        "error"
-                    );
-
-                    crIdInput.focus();
-
+                if (isSubmitting) {
                     return;
-
                 }
 
 
                 // =================================
-                // CR NAME
+                // FRONTEND VALIDATION
                 // =================================
 
-                if (!crName) {
+                const basic =
+                    getBasicValidation();
+
+
+                if (!basic.valid) {
 
                     showMessage(
-                        "Please enter your name.",
+                        basic.message,
                         "error"
                     );
 
-                    crNameInput.focus();
 
-                    return;
-
-                }
-
-
-                // =================================
-                // WHATSAPP
-                // =================================
-
-                if (!whatsappNumber) {
-
-                    showMessage(
-                        "Please enter your WhatsApp number.",
-                        "error"
-                    );
-
-                    if (whatsappInput) {
-
-                        whatsappInput.focus();
-
+                    if (basic.field) {
+                        basic.field.focus();
                     }
 
+
+                    updateSubmitState();
+
                     return;
 
                 }
 
 
-                const normalizedWhatsApp =
-                    whatsappNumber.replace(
-                        /[\s\-()]/g,
-                        ""
-                    );
+                const academic =
+                    getAcademicValidation();
 
 
-                const validBangladeshNumber =
-                    /^(\+8801|8801|01)\d{9}$/
-                        .test(
-                            normalizedWhatsApp
-                        );
-
-
-                if (!validBangladeshNumber) {
+                if (!academic.valid) {
 
                     showMessage(
-                        "Please enter a valid Bangladesh WhatsApp number.",
+                        academic.message,
                         "error"
                     );
 
-                    whatsappInput.focus();
+
+                    if (academic.field) {
+                        academic.field.focus();
+                    }
+
+
+                    updateSubmitState();
 
                     return;
 
@@ -857,97 +983,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                 // =================================
-                // BATCH
-                // =================================
-
-                if (!batch) {
-
-                    showMessage(
-                        "Batch number must contain numbers only.",
-                        "error"
-                    );
-
-                    batchInput.focus();
-
-                    return;
-
-                }
-
-
-                // =================================
-                // SESSION
-                // =================================
-
-                if (!session) {
-
-                    showMessage(
-                        "Session must be Spring or Fall.",
-                        "error"
-                    );
-
-                    sessionInput.focus();
-
-                    return;
-
-                }
-
-
-                // =================================
-                // YEAR
-                // =================================
-
-                if (!year) {
-
-                    showMessage(
-                        "Academic year must be a valid 4-digit year.",
-                        "error"
-                    );
-
-                    yearInput.focus();
-
-                    return;
-
-                }
-
-
-                // =================================
-                // EXAM
-                // =================================
-
-                if (!exam) {
-
-                    showMessage(
-                        "Examination must be Mid or Final.",
-                        "error"
-                    );
-
-                    examInput.focus();
-
-                    return;
-
-                }
-
-
-                // =================================
-                // SEMESTER
-                // =================================
-
-                if (!semester) {
-
-                    showMessage(
-                        "Semester must be between 01 and 08.",
-                        "error"
-                    );
-
-                    semesterInput.focus();
-
-                    return;
-
-                }
-
-
-                // =================================
-                // PDF
+                // PDF VALIDATION
                 // =================================
 
                 if (!selectedPDF) {
@@ -956,6 +992,60 @@ document.addEventListener("DOMContentLoaded", () => {
                         "Please choose a PDF question paper.",
                         "error"
                     );
+
+                    return;
+
+                }
+
+
+                if (
+                    selectedPDF.size <= 0 ||
+                    selectedPDF.size > MAX_FILE_SIZE
+                ) {
+
+                    showMessage(
+                        "PDF size must be greater than 0 and 15 MB or less.",
+                        "error"
+                    );
+
+                    resetPDF();
+
+                    return;
+
+                }
+
+
+                if (
+                    selectedPDF.type !==
+                    "application/pdf"
+                ) {
+
+                    showMessage(
+                        "Please select a valid PDF file.",
+                        "error"
+                    );
+
+                    resetPDF();
+
+                    return;
+
+                }
+
+
+                const isPDF =
+                    await checkPDFSignature(
+                        selectedPDF
+                    );
+
+
+                if (!isPDF) {
+
+                    showMessage(
+                        "This file is not a valid PDF.",
+                        "error"
+                    );
+
+                    resetPDF();
 
                     return;
 
@@ -985,7 +1075,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                 // =================================
-                // GENERATE SYSTEM FILE DATA
+                // SYSTEM GENERATED DATA
                 // =================================
 
                 const fileData =
@@ -1004,22 +1094,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
 
-                /*
-                    IMPORTANT:
-
-                    Original uploaded PDF filename
-                    is NOT used here.
-
-                    System-generated filename:
-                    Batch-26_Fall-2024_Mid.pdf
-
-                    System-generated path:
-                    Semester_02/Batch-26_Fall-2024_Mid.pdf
-                */
-
-
                 // =================================
-                // FORMDATA
+                // FORM DATA
                 // =================================
 
                 const formData =
@@ -1028,19 +1104,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 formData.append(
                     "cr_id",
-                    crId
+                    crIdInput.value.trim()
                 );
 
 
                 formData.append(
                     "cr_name",
-                    crName
+                    crNameInput.value.trim()
                 );
 
 
                 formData.append(
                     "whatsapp_number",
-                    normalizedWhatsApp
+                    basic.normalizedWhatsApp
                 );
 
 
@@ -1075,12 +1151,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                 /*
-                    These are generated by the frontend
-                    for preview/compatibility.
+                    These are only compatibility/preview
+                    values.
 
-                    The Worker MUST independently
-                    regenerate them from the academic
-                    fields instead of trusting them.
+                    The Worker MUST regenerate them
+                    independently.
                 */
 
                 formData.append(
@@ -1097,13 +1172,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 formData.append(
                     "file",
-                    selectedPDF
+                    selectedPDF,
+                    selectedPDF.name
                 );
 
 
                 // =================================
-                // SUBMIT BUTTON
+                // LOCK SUBMISSION
                 // =================================
+
+                isSubmitting = true;
+
 
                 const originalText =
                     submitButton
@@ -1122,7 +1201,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                 // =================================
-                // UPLOAD REQUEST
+                // SEND REQUEST
                 // =================================
 
                 try {
@@ -1196,6 +1275,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
 
 
+                    updateGeneratedPath();
+
                     updateSubmitState();
 
 
@@ -1213,8 +1294,10 @@ document.addEventListener("DOMContentLoaded", () => {
                         "error"
                     );
 
-
                 } finally {
+
+                    isSubmitting = false;
+
 
                     if (submitButton) {
 
@@ -1222,9 +1305,11 @@ document.addEventListener("DOMContentLoaded", () => {
                             originalText ||
                             "Submit for Review";
 
-                        updateSubmitState();
-
                     }
+
+
+                    updateGeneratedPath();
+                    updateSubmitState();
 
                 }
 
