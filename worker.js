@@ -657,10 +657,76 @@ function generateQuestionPaperIdentity({
 
 
 // ============================================================
+// PARSE QUESTION PAPER IDENTITY FROM FILENAME
+// ============================================================
+
+function parseQuestionPaperFilename(
+  filename
+) {
+
+  const name =
+    normalizeString(filename);
+
+
+  const match =
+    /^Batch-(\d+)_(Spring|Fall)-(\d{4})_(Mid|Final)\.pdf$/i
+      .exec(name);
+
+
+  if (!match) {
+
+    throw new Error(
+      "Invalid question paper filename format"
+    );
+  }
+
+
+  const batch =
+    normalizeBatch(
+      match[1]
+    );
+
+
+  const session =
+    normalizeSession(
+      match[2]
+    );
+
+
+  const year =
+    normalizeYear(
+      match[3]
+    );
+
+
+  const exam =
+    normalizeExam(
+      match[4]
+    );
+
+
+  return {
+
+    batchNo:
+      batch,
+
+    session,
+
+    year,
+
+    exam,
+
+  };
+}
+
+
+// ============================================================
 // PDF VALIDATION
 // ============================================================
 
-async function validatePdf(file) {
+async function validatePdf(
+  file
+) {
 
   if (!(file instanceof File)) {
 
@@ -728,7 +794,9 @@ async function validatePdf(file) {
 // HASH / TOKEN
 // ============================================================
 
-async function sha256(value) {
+async function sha256(
+  value
+) {
 
   const data =
     typeof value === "string"
@@ -755,7 +823,9 @@ async function sha256(value) {
 }
 
 
-async function createToken(type) {
+async function createToken(
+  type
+) {
 
   const timestamp =
     Date.now();
@@ -833,9 +903,7 @@ async function verifyToken(
   }
 
 
-  // Token format / lifetime verification.
-  // Existing authentication architecture
-  // intentionally preserved.
+  // Existing authentication architecture preserved.
   return true;
 }
 
@@ -844,7 +912,9 @@ async function verifyToken(
 // AUTH HELPERS
 // ============================================================
 
-function getAuthorizationToken(request) {
+function getAuthorizationToken(
+  request
+) {
 
   const header =
     request.headers.get(
@@ -873,7 +943,9 @@ function getAuthorizationToken(request) {
 }
 
 
-function getPassword(request) {
+function getPassword(
+  request
+) {
 
   return request.headers.get(
     "X-Password"
@@ -975,9 +1047,6 @@ async function requireCR(
 
 // ============================================================
 // CR LOGIN
-// IMPORTANT:
-// Frontend sends password through X-Password.
-// DO NOT call request.json() here.
 // ============================================================
 
 async function handleCRAuth(
@@ -1006,18 +1075,20 @@ async function handleCRAuth(
 
 
   return json({
+
     ok: true,
+
     token,
+
     expiresIn:
       6 * 60 * 60,
+
   });
 }
 
 
 // ============================================================
 // ADMIN LOGIN
-// IMPORTANT:
-// Frontend sends password through X-Password.
 // ============================================================
 
 async function handleAdminAuth(
@@ -1046,10 +1117,14 @@ async function handleAdminAuth(
 
 
   return json({
+
     ok: true,
+
     token,
+
     expiresIn:
       6 * 60 * 60,
+
   });
 }
 
@@ -1058,10 +1133,14 @@ async function handleAdminAuth(
 // STUDENT INFO
 // ============================================================
 
-function parseStudentId(crId) {
+function parseStudentId(
+  crId
+) {
 
   const normalized =
-    normalizeCRId(crId);
+    normalizeCRId(
+      crId
+    );
 
 
   const departmentCode =
@@ -1093,15 +1172,19 @@ function parseStudentId(crId) {
   let session;
 
 
-  if (sessionCode === "1") {
+  if (
+    sessionCode === "1"
+  ) {
 
-    session = "Spring";
+    session =
+      "Spring";
 
   } else if (
     sessionCode === "2"
   ) {
 
-    session = "Fall";
+    session =
+      "Fall";
 
   } else {
 
@@ -1130,6 +1213,7 @@ function parseStudentId(crId) {
     admissionYear,
 
     roll,
+
   };
 }
 
@@ -1249,9 +1333,12 @@ async function handleAcademicConfig(
 
 
     return json({
+
       ok: true,
+
       config:
         result.results || [],
+
     });
 
   } catch (err) {
@@ -1269,7 +1356,9 @@ async function handleAcademicConfig(
 // GITHUB HEADERS
 // ============================================================
 
-function githubHeaders(env) {
+function githubHeaders(
+  env
+) {
 
   return {
 
@@ -1284,6 +1373,7 @@ function githubHeaders(env) {
 
     "User-Agent":
       "HUB-CSE-Question-Bank",
+
   };
 }
 
@@ -1315,6 +1405,7 @@ async function githubRequest(
         ...(options.headers || {}),
 
       },
+
     }
   );
 }
@@ -1334,12 +1425,17 @@ async function getGithubFile(
       env,
       path,
       {
-        method: "GET",
+
+        method:
+          "GET",
 
         headers: {
+
           "Accept":
             "application/vnd.github.raw+json",
+
         },
+
       }
     );
 
@@ -1382,7 +1478,10 @@ async function getGithubFileSha(
       env,
       path,
       {
-        method: "GET",
+
+        method:
+          "GET",
+
       }
     );
 
@@ -1438,7 +1537,8 @@ async function uploadGithubFile(
   let binary = "";
 
 
-  const CHUNK_SIZE = 0x8000;
+  const CHUNK_SIZE =
+    0x8000;
 
 
   for (
@@ -1491,15 +1591,19 @@ async function uploadGithubFile(
       path,
       {
 
-        method: "PUT",
+        method:
+          "PUT",
 
         headers: {
+
           "Content-Type":
             "application/json",
+
         },
 
         body:
           JSON.stringify(body),
+
       }
     );
 
@@ -1540,9 +1644,14 @@ async function deleteGithubFile(
   if (!sha) {
 
     return {
+
       ok: true,
+
       deleted: false,
-      reason: "File not found",
+
+      reason:
+        "File not found",
+
     };
   }
 
@@ -1553,11 +1662,14 @@ async function deleteGithubFile(
       path,
       {
 
-        method: "DELETE",
+        method:
+          "DELETE",
 
         headers: {
+
           "Content-Type":
             "application/json",
+
         },
 
         body:
@@ -1574,6 +1686,7 @@ async function deleteGithubFile(
               "main",
 
           }),
+
       }
     );
 
@@ -1612,7 +1725,10 @@ async function readQuestionBankJson(
       env,
       jsonPath,
       {
-        method: "GET",
+
+        method:
+          "GET",
+
       }
     );
 
@@ -1626,13 +1742,19 @@ async function readQuestionBankJson(
       return {
 
         data: {
-          version: "2.0",
+
+          version:
+            "2.0",
+
           lastUpdated:
             new Date().toISOString(),
+
           semesters: [],
+
         },
 
-        sha: null,
+        sha:
+          null,
 
       };
     }
@@ -1679,7 +1801,8 @@ async function readQuestionBankJson(
       ),
 
     sha:
-      githubData.sha || null,
+      githubData.sha ||
+      null,
 
   };
 }
@@ -1737,7 +1860,8 @@ function sortSemesters(
       const aNum =
         Number(
           String(
-            a.name || ""
+            a.name ||
+            ""
           )
             .replace(
               /\D/g,
@@ -1749,7 +1873,8 @@ function sortSemesters(
       const bNum =
         Number(
           String(
-            b.name || ""
+            b.name ||
+            ""
           )
             .replace(
               /\D/g,
@@ -1775,15 +1900,22 @@ function sortFiles(
   return files.sort(
     (a, b) =>
       String(
-        a.name || ""
+        a.name ||
+        ""
       ).localeCompare(
         String(
-          b.name || ""
+          b.name ||
+          ""
         ),
         undefined,
         {
-          numeric: true,
-          sensitivity: "base",
+
+          numeric:
+            true,
+
+          sensitivity:
+            "base",
+
         }
       )
   );
@@ -1949,11 +2081,14 @@ async function updateQuestionBankJson(
       jsonPath,
       {
 
-        method: "PUT",
+        method:
+          "PUT",
 
         headers: {
+
           "Content-Type":
             "application/json",
+
         },
 
         body:
@@ -2096,7 +2231,9 @@ async function removeFromQuestionBankJson(
 
     return {
 
-      changed: false,
+      changed:
+        false,
+
       data,
 
     };
@@ -2153,11 +2290,14 @@ async function removeFromQuestionBankJson(
       jsonPath,
       {
 
-        method: "PUT",
+        method:
+          "PUT",
 
         headers: {
+
           "Content-Type":
             "application/json",
+
         },
 
         body:
@@ -2181,7 +2321,9 @@ async function removeFromQuestionBankJson(
 
   return {
 
-    changed: true,
+    changed:
+      true,
+
     data,
 
   };
@@ -2264,7 +2406,10 @@ async function handleGithubTest(
         env,
         jsonPath,
         {
-          method: "GET",
+
+          method:
+            "GET",
+
         }
       );
 
@@ -2279,13 +2424,15 @@ async function handleGithubTest(
         await response.json();
 
       sha =
-        data.sha || null;
+        data.sha ||
+        null;
     }
 
 
     return json({
 
-      ok: true,
+      ok:
+        true,
 
       repository:
         `${env.GITHUB_OWNER}/${env.GITHUB_REPO}`,
@@ -2390,12 +2537,16 @@ async function handleUploadRequest(
 
 
     // --------------------------------------------------------
-    // IMPORTANT:
-    // Frontend filename/path are NOT trusted.
+    // DATABASE
     // --------------------------------------------------------
 
-    pendingGithubPath =
-      `pending/${uuid()}.pdf`;
+    if (!env.DB) {
+
+      return error(
+        "Database is not configured",
+        500
+      );
+    }
 
 
     // --------------------------------------------------------
@@ -2419,17 +2570,8 @@ async function handleUploadRequest(
 
 
     // --------------------------------------------------------
-    // DATABASE
+    // CHECK DUPLICATE PENDING REQUEST
     // --------------------------------------------------------
-
-    if (!env.DB) {
-
-      return error(
-        "Database is not configured",
-        500
-      );
-    }
-
 
     const duplicate =
       await env.DB
@@ -2458,8 +2600,12 @@ async function handleUploadRequest(
 
 
     // --------------------------------------------------------
-    // UPLOAD TO GITHUB PENDING
+    // PENDING GITHUB FILE
     // --------------------------------------------------------
+
+    pendingGithubPath =
+      `pending/${uuid()}.pdf`;
+
 
     await uploadGithubFile(
 
@@ -2476,9 +2622,11 @@ async function handleUploadRequest(
 
     // --------------------------------------------------------
     // INSERT DATABASE RECORD
+    // IMPORTANT:
+    // Existing D1 schema is used exactly.
     // --------------------------------------------------------
 
-    const id =
+    const requestUuid =
       uuid();
 
 
@@ -2489,18 +2637,18 @@ async function handleUploadRequest(
           `
           INSERT INTO upload_requests
           (
-            id,
+            request_uuid,
             cr_id,
-            batch,
-            session,
-            year,
-            exam,
+            cr_name,
             semester,
+            exam,
             filename,
-            github_path,
-            pending_path,
+            r2_key,
+            file_size,
             status,
-            created_at
+            created_at,
+            github_path,
+            whatsapp_number
           )
           VALUES
           (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -2508,29 +2656,29 @@ async function handleUploadRequest(
         )
         .bind(
 
-          id,
+          requestUuid,
 
           crId,
 
-          identity.batchNo,
-
-          identity.session,
-
-          identity.year,
-
-          identity.exam,
+          crName,
 
           identity.semester,
 
-          identity.filename,
+          identity.exam,
 
-          identity.githubPath,
+          identity.filename,
 
           pendingGithubPath,
 
+          file.size,
+
           "pending",
 
-          new Date().toISOString()
+          new Date().toISOString(),
+
+          identity.githubPath,
+
+          whatsappNumber
 
         )
         .run();
@@ -2570,13 +2718,16 @@ async function handleUploadRequest(
 
     return json({
 
-      ok: true,
+      ok:
+        true,
 
       message:
         "Question paper submitted successfully and is waiting for admin approval.",
 
       uploadId:
-        id,
+        requestUuid,
+
+      requestUuid,
 
       filename:
         identity.filename,
@@ -2673,17 +2824,18 @@ async function handleAdminUploads(
           `
           SELECT
             id,
+            request_uuid,
             cr_id,
-            batch,
-            session,
-            year,
-            exam,
+            cr_name,
+            whatsapp_number,
             semester,
+            exam,
             filename,
-            github_path,
-            pending_path,
+            r2_key,
+            file_size,
             status,
-            created_at
+            created_at,
+            github_path
           FROM upload_requests
           WHERE status = 'pending'
           ORDER BY created_at DESC
@@ -2692,14 +2844,60 @@ async function handleAdminUploads(
         .all();
 
 
+    const uploads =
+      (result.results || [])
+        .map(row => {
+
+          let identity = {};
+
+
+          try {
+
+            identity =
+              parseQuestionPaperFilename(
+                row.filename
+              );
+
+          } catch (parseError) {
+
+            console.error(
+              "Filename parsing failed:",
+              row.filename,
+              parseError
+            );
+          }
+
+
+          return {
+
+            ...row,
+
+            // Compatibility fields for admin frontend
+            batch:
+              identity.batchNo ??
+              null,
+
+            session:
+              identity.session ??
+              null,
+
+            year:
+              identity.year ??
+              null,
+
+          };
+        });
+
+
     return json({
 
-      ok: true,
+      ok:
+        true,
 
-      uploads:
-        result.results || [],
+      uploads,
 
     });
+
 
   } catch (err) {
 
@@ -2783,9 +2981,7 @@ async function handleAdminPreview(
     }
 
 
-    if (
-      !row.pending_path
-    ) {
+    if (!row.r2_key) {
 
       return error(
         "Pending PDF path not found",
@@ -2797,7 +2993,7 @@ async function handleAdminPreview(
     const pdf =
       await getGithubFile(
         env,
-        row.pending_path
+        row.r2_key
       );
 
 
@@ -2813,7 +3009,9 @@ async function handleAdminPreview(
     return new Response(
       pdf,
       {
-        status: 200,
+
+        status:
+          200,
 
         headers: {
 
@@ -2829,6 +3027,7 @@ async function handleAdminPreview(
             "no-store",
 
         },
+
       }
     );
 
@@ -2916,12 +3115,31 @@ async function handleAdminApprove(
 
 
     if (
-      row.status !== "pending"
+      row.status !==
+      "pending"
     ) {
 
       return error(
         `Upload cannot be approved because its current status is "${row.status}"`,
         409
+      );
+    }
+
+
+    if (!row.r2_key) {
+
+      return error(
+        "Pending PDF path not found",
+        404
+      );
+    }
+
+
+    if (!row.github_path) {
+
+      return error(
+        "Published GitHub path not found",
+        400
       );
     }
 
@@ -2972,7 +3190,7 @@ async function handleAdminApprove(
       const pdf =
         await getGithubFile(
           env,
-          row.pending_path
+          row.r2_key
         );
 
 
@@ -3001,6 +3219,16 @@ async function handleAdminApprove(
           "This question paper is already published"
         );
       }
+
+
+      // ------------------------------------------------------
+      // VALIDATE FILENAME
+      // ------------------------------------------------------
+
+      const parsedIdentity =
+        parseQuestionPaperFilename(
+          row.filename
+        );
 
 
       // ------------------------------------------------------
@@ -3041,31 +3269,30 @@ async function handleAdminApprove(
       // UPDATE QUESTIONBANK.JSON
       // ------------------------------------------------------
 
-      const identity =
-        {
+      const identity = {
 
-          batchNo:
-            Number(row.batch),
+        batchNo:
+          parsedIdentity.batchNo,
 
-          session:
-            row.session,
+        session:
+          parsedIdentity.session,
 
-          year:
-            Number(row.year),
+        year:
+          parsedIdentity.year,
 
-          exam:
-            row.exam,
+        exam:
+          parsedIdentity.exam,
 
-          semester:
-            row.semester,
+        semester:
+          row.semester,
 
-          filename:
-            row.filename,
+        filename:
+          row.filename,
 
-          githubPath:
-            row.github_path,
+        githubPath:
+          row.github_path,
 
-        };
+      };
 
 
       await updateQuestionBankJson(
@@ -3088,7 +3315,7 @@ async function handleAdminApprove(
 
           env,
 
-          row.pending_path,
+          row.r2_key,
 
           `Remove pending file after approval ${row.filename}`
 
@@ -3105,7 +3332,7 @@ async function handleAdminApprove(
 
       // ------------------------------------------------------
       // DELETE DB REQUEST
-      // ------------------------------------------------------
+      // --------------------------------------------------------
 
       await env.DB
         .prepare(
@@ -3120,7 +3347,8 @@ async function handleAdminApprove(
 
       return json({
 
-        ok: true,
+        ok:
+          true,
 
         message:
           "Question paper approved and published successfully.",
@@ -3149,9 +3377,7 @@ async function handleAdminApprove(
       // ROLLBACK JSON
       // ------------------------------------------------------
 
-      if (
-        jsonUpdated
-      ) {
+      if (jsonUpdated) {
 
         try {
 
@@ -3174,9 +3400,7 @@ async function handleAdminApprove(
       // ROLLBACK FINAL PDF
       // ------------------------------------------------------
 
-      if (
-        finalUploaded
-      ) {
+      if (finalUploaded) {
 
         try {
 
@@ -3309,7 +3533,8 @@ async function handleAdminReject(
 
 
     if (
-      row.status !== "pending"
+      row.status !==
+      "pending"
     ) {
 
       return error(
@@ -3323,9 +3548,7 @@ async function handleAdminReject(
     // DELETE PENDING PDF
     // --------------------------------------------------------
 
-    if (
-      row.pending_path
-    ) {
+    if (row.r2_key) {
 
       try {
 
@@ -3333,7 +3556,7 @@ async function handleAdminReject(
 
           env,
 
-          row.pending_path,
+          row.r2_key,
 
           `Reject question paper ${row.filename}`
 
@@ -3367,7 +3590,8 @@ async function handleAdminReject(
 
     return json({
 
-      ok: true,
+      ok:
+        true,
 
       message:
         "Question paper rejected and removed successfully.",
@@ -3418,7 +3642,8 @@ async function handleAdminPublished(
 
     return json({
 
-      ok: true,
+      ok:
+        true,
 
       repository:
         `${env.GITHUB_OWNER}/${env.GITHUB_REPO}`,
@@ -3501,7 +3726,7 @@ async function handleAdminDelete(
 
 
     // --------------------------------------------------------
-    // VERIFY IT IS ACTUALLY PUBLISHED
+    // VERIFY PUBLISHED
     // --------------------------------------------------------
 
     const published =
@@ -3522,7 +3747,6 @@ async function handleAdminDelete(
 
     // --------------------------------------------------------
     // GET PDF BEFORE DELETE
-    // Used for rollback if JSON update fails.
     // --------------------------------------------------------
 
     const pdf =
@@ -3612,7 +3836,8 @@ async function handleAdminDelete(
 
     return json({
 
-      ok: true,
+      ok:
+        true,
 
       message:
         "Published question paper deleted successfully.",
