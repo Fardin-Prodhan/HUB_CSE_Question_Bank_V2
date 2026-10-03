@@ -587,6 +587,34 @@ async function getGithubFile(
   return await response.json();
 }
 
+async function getGithubFileBytes(env, path) {
+  const response = await githubRequest(env, path, {
+    headers: {
+      Accept: "application/vnd.github.raw+json",
+    },
+  });
+
+  if (response.status === 404) return null;
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`GitHub PDF download failed: ${response.status} ${text}`);
+  }
+
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+function bytesToBase64(bytes) {
+  const chunkSize = 0x8000;
+  let binary = "";
+
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+
+  return btoa(binary);
+}
+
 
 async function getGithubFileSha(
   env,
@@ -1604,17 +1632,11 @@ async function handleAdminPreview(
       );
     }
 
-    const binary =
-      Uint8Array.from(
-        atob(
-          file.content.replace(
-            /\n/g,
-            ""
-          )
-        ),
-        char =>
-          char.charCodeAt(0)
-      );
+    const binary = await getGithubFileBytes(env, row.pending_path);
+
+if (!binary || binary.byteLength === 0) {
+  return error("Pending PDF is empty or could not be downloaded", 404);
+}
 
     return new Response(
       binary,
@@ -1740,11 +1762,13 @@ async function handleApprove(
         );
       }
 
-      const encoded =
-        pendingFile.content.replace(
-          /\n/g,
-          ""
-        );
+      const pendingBytes = await getGithubFileBytes(env, row.pending_path);
+
+if (!pendingBytes || pendingBytes.byteLength === 0) {
+  throw new Error("Pending PDF is empty or could not be downloaded");
+}
+
+const encoded = bytesToBase64(pendingBytes);
 
       await uploadGithubFile(
         env,
