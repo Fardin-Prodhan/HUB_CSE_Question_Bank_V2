@@ -1,5 +1,5 @@
 const API_BASE =
-    "https://cse-question-bank-api.fardin83832006.workers.dev";
+"https://cse-question-bank-api.fardin83832006.workers.dev";
 
 const ADMIN_DASHBOARD =
     "admin.html";
@@ -158,7 +158,8 @@ form.addEventListener(
                         headers: {
                             "Content-Type": "application/json",
                             "X-Password": password
-                        }
+                        },
+                        body: JSON.stringify({ password: password })
                     }
                 );
 

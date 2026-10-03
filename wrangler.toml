@@ -4,7 +4,7 @@ compatibility_date = "2026-09-16"
 
 [vars]
 GITHUB_OWNER = "Fardin-Prodhan"
-GITHUB_REPO = "CSE-Dept-Question-Bank"
+GITHUB_REPO = "HUB_CSE_Question_Bank_V2"
 GITHUB_BRANCH = "main"
 GITHUB_JSON_PATH = "questionbank.json"
 
