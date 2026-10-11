@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-10-03T14:06:06.786Z",
+  "lastUpdated": "2026-10-11T17:57:52.140Z",
   "version": "1.0",
   "semesters": [
     {
@@ -126,6 +126,10 @@
         {
           "name": "Batch-27th_Fall-2025_Mid_&_Final.pdf",
           "path": "Semester_03/Batch-27th_Fall-2025_Mid_&_Final.pdf"
+        },
+        {
+          "name": "Batch-28th_Spring-2026_Final.pdf",
+          "path": "Semester_03/Batch-28th_Spring-2026_Final.pdf"
         },
         {
           "name": "Batch-28th_Spring-2026_Mid.pdf.pdf",
